@@ -56,7 +56,9 @@ public class VentaFacadeImpl implements VentaFacade {
         return null;
     }
 
+    @Override
     public VentaDTO orden(VentaRequest ventaRequest) {
+
         VentaDTO ventaDTO = new VentaDTO();
         List<ProductoVentaDTO> productoVentaDTOS = ventaRequest.getProductoVentaDTOS();
 

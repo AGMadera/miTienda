@@ -1,16 +1,10 @@
-package com.agmadera.mitienda.entities;
+package com.agmadera.mitienda.models;
 
 
-import jakarta.persistence.*;
 
-@Entity
-public class ProductoVentaEntity {
+public class ProductoVentaDTO {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
-
-    @Column(name = "idProducto")
     private Long idProductoRef;
     private String nombre;
     private int cantidad;

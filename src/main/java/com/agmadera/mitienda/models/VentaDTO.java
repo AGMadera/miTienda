@@ -1,25 +1,19 @@
-package com.agmadera.mitienda.entities;
+package com.agmadera.mitienda.models;
 
-import jakarta.persistence.*;
 
 import java.util.Date;
 import java.util.List;
 
-@Entity
-public class VentaEntity {
+public class VentaDTO {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
-
-    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    @JoinColumn(name = "compatible_id", referencedColumnName = "id")
-    private List<ProductoVentaEntity> productoVentaEntity;
+    private List<ProductoVentaDTO> productoVentaDTOS;
     private float totalGenrealAntesDesc;
     private float descuentosEnTotalGen;
     private float totalGenreal;
     private Date fechaVenta;
     private String mensaje;
+    private boolean tecnico;
 
     public Long getId() {
         return id;
@@ -29,12 +23,12 @@ public class VentaEntity {
         this.id = id;
     }
 
-    public List<ProductoVentaEntity> getProductoVentaEntity() {
-        return productoVentaEntity;
+    public List<ProductoVentaDTO> getProductoVentaDTOS() {
+        return productoVentaDTOS;
     }
 
-    public void setProductoVentaEntity(List<ProductoVentaEntity> productoVentaEntity) {
-        this.productoVentaEntity = productoVentaEntity;
+    public void setProductoVentaDTOS(List<ProductoVentaDTO> productoVentaDTOS) {
+        this.productoVentaDTOS = productoVentaDTOS;
     }
 
     public float getTotalGenrealAntesDesc() {
@@ -75,5 +69,13 @@ public class VentaEntity {
 
     public void setMensaje(String mensaje) {
         this.mensaje = mensaje;
+    }
+
+    public boolean isTecnico() {
+        return tecnico;
+    }
+
+    public void setTecnico(boolean tecnico) {
+        this.tecnico = tecnico;
     }
 }

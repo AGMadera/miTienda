@@ -25,4 +25,6 @@ public interface ProductoFacade {
     ProductoDTO actualizarProducto(ProductoDTO dto);
 
     List<ProductoPGResponse> buscarNombrePG(String nombre);
+
+    ProductoDTO actualizarStock(ProductoDTO dto);
 }

@@ -38,7 +38,7 @@ public class ProductoFacadeImpl implements ProductoFacade {
     @Override
     public ProductoDTO guardarProducto(ProductoDTO dto) {
         if(dto.getId() != null){
-            //TODO Execption Producto-Existente!!
+            //actualizacion
            return actualizarProducto(dto);
         }
         StockDTO stockDTO = new StockDTO();
@@ -111,6 +111,9 @@ public class ProductoFacadeImpl implements ProductoFacade {
     @Override
     public ProductoDTO buscarId(Long id) {
         Optional<ProductoEntity> productoEntityFind = service.buscarId(id);
+        if(productoEntityFind.isEmpty()){
+            //TODO lanzar exception
+        }
         return populator.entity2Dto(productoEntityFind.get());
     }
 
@@ -203,6 +206,13 @@ public class ProductoFacadeImpl implements ProductoFacade {
         List<ProductoEntity> productoEntityList = service.buscarNombre(nombre);
         List<ProductoPGResponse> productoPGRespons = populator.listEntity2ProductoPGResponses(productoEntityList);
         return productoPGRespons;
+    }
+
+    @Override
+    public ProductoDTO actualizarStock(ProductoDTO dto) {
+
+        return populator.entity2Dto(service.guardar(populator.dto2Entity(dto)));
+
     }
 
     private int ingresarStock(ProductoDTO dto){

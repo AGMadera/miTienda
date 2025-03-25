@@ -1,7 +1,9 @@
 package com.agmadera.mitienda.config;
 
 import com.agmadera.mitienda.entities.ProductoEntity;
+import com.agmadera.mitienda.entities.VentaEntity;
 import com.agmadera.mitienda.models.ProductoDTO;
+import com.agmadera.mitienda.models.VentaDTO;
 import com.agmadera.mitienda.models.response.ProductoPGResponse;
 import com.agmadera.mitienda.models.response.ProductoTecResponse;
 import org.modelmapper.Condition;
@@ -35,6 +37,10 @@ public class ModelMapperConfig {
                 //.addMapping(src -> src.getCompraVentaEntity().get(0).getVentaTecnico(), ProductoTecResponse::setPrecio);
         modelMapper.typeMap(ProductoEntity.class, ProductoPGResponse.class)
                 .addMapping(src -> src.getStockEntity().getUnidadesExistencia(), ProductoPGResponse::setUnidadesExistancia);
+        modelMapper.typeMap(VentaEntity.class, VentaDTO.class)
+                .addMapping(src ->src.getProductoVentaEntity(), VentaDTO::setProductoVentaDTOS);
+        modelMapper.typeMap(VentaDTO.class, VentaEntity.class)
+                .addMapping(src-> src.getProductoVentaDTOS(), VentaEntity::setProductoVentaEntity);
 
 
 

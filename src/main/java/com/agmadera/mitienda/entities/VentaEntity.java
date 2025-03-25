@@ -13,13 +13,13 @@ public class VentaEntity {
     private Long id;
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    @JoinColumn(name = "compatible_id", referencedColumnName = "id")
+    @JoinColumn(name = "producto_venta_id", referencedColumnName = "id")
     private List<ProductoVentaEntity> productoVentaEntity;
     private float totalGenrealAntesDesc;
     private float descuentosEnTotalGen;
     private float totalGenreal;
     private Date fechaVenta;
-    private String mensaje;
+    //private String mensaje;
 
     public Long getId() {
         return id;
@@ -69,11 +69,4 @@ public class VentaEntity {
         this.fechaVenta = fechaVenta;
     }
 
-    public String getMensaje() {
-        return mensaje;
-    }
-
-    public void setMensaje(String mensaje) {
-        this.mensaje = mensaje;
-    }
 }

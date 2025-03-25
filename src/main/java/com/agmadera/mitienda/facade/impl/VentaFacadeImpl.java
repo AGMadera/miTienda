@@ -9,11 +9,15 @@ import com.agmadera.mitienda.models.ProductoDTO;
 import com.agmadera.mitienda.models.ProductoVentaDTO;
 import com.agmadera.mitienda.models.VentaDTO;
 import com.agmadera.mitienda.models.request.VentaRequest;
+import com.agmadera.mitienda.populator.VentaPopulator;
 import com.agmadera.mitienda.services.VentaService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
 
+@Component
 public class VentaFacadeImpl implements VentaFacade {
 
     @Autowired
@@ -22,6 +26,11 @@ public class VentaFacadeImpl implements VentaFacade {
     @Autowired
     private ProductoFacade productoFacade;
 
+    @Autowired
+    private VentaPopulator ventaPopulator;
+
+    @Value("${mensaje.venta}")
+    private String mensaje;
 
 
     @Override
@@ -29,31 +38,38 @@ public class VentaFacadeImpl implements VentaFacade {
         List<ProductoVentaDTO> productoVentaDTOS = ventaDTO.getProductoVentaDTOS();
         int i = 0;
         while (productoVentaDTOS.iterator().hasNext()){
-            ProductoVentaDTO productoVentaDTO = productoVentaDTOS.get(i);
             if (productoVentaDTOS.size() == i){
                 break;
             }
-            ProductoDTO productoDTO = productoFacade.buscarId(productoVentaDTO.getId());
-            productoVentaDTO.setNombre(productoDTO.getNombre() + productoDTO.getCalidad());// se coloca nombre de venta
+            ProductoVentaDTO productoVentaDTO = productoVentaDTOS.get(i);
+            ProductoDTO productoDTO = productoFacade.buscarId(productoVentaDTO.getIdProductoRef());
+
             int unidadesExistencia = productoDTO.getStockDTO().getUnidadesExistencia();
-            int unidadesVendidas = productoVentaDTO.getCantidad();
+            int unidadesAVender = productoVentaDTO.getCantidad();
 
-            //Se prepara productoDTO para actualizacion de stock (unidades en existencia)
-            productoDTO.getStockDTO().setUnidadesExistencia(unidadesExistencia-unidadesVendidas);
-            //TODO se manda llamar facade o service para actualizar stock
+            //Se prepara productoDTO para actualizacion de stock (unidades en existencia y unidades vendidas)
+            productoDTO.getStockDTO().setUnidadesExistencia(unidadesExistencia-unidadesAVender);
+            productoDTO.getStockDTO().setUnidadesVendidas(productoDTO.getStockDTO().getUnidadesVendidas() + unidadesAVender);
 
-            //Colocar precio y descuentos
-            float precio = productoDTO.getCompraVentaDTOS().get(productoDTO.getCompraVentaDTOS().size()-1).getVentaPG();
-            if (ventaDTO.isTecnico()){
-                precio = productoDTO.getCompraVentaDTOS().get(productoDTO.getCompraVentaDTOS().size()-1) .getVentaTecnico();
-            }
-            productoVentaDTO.setPrecio(precio);//Se agrega el precio por unidad
-            productoVentaDTO.getDescuento();
+            //Se manda llamar facade para guardar stock actualizado
+            productoFacade.actualizarStock(productoDTO);
+            i++;
+        }
 
-
+        float totalGenrealAntesDesc = ventaDTO.getTotalGenrealAntesDesc();
+        float descuentosEnTotalGen = ventaDTO.getDescuentosEnTotalGen();
+        if(descuentosEnTotalGen>totalGenrealAntesDesc){
+            //TODO lanzar exception
 
         }
-        return null;
+        ventaDTO.setTotalGenreal(totalGenrealAntesDesc - descuentosEnTotalGen);
+
+        VentaEntity ventaGuardada = ventaService.guardarVenta(ventaPopulator.dto2Entity(ventaDTO));
+        VentaDTO ventaDTOResponse = ventaPopulator.entity2Dto(ventaGuardada);
+        ventaDTOResponse.setMensaje(mensaje);
+        return ventaDTOResponse;
+
+        //return ventaDTO;
     }
 
     @Override
@@ -77,11 +93,11 @@ public class VentaFacadeImpl implements VentaFacade {
 
             //Se valida stock en existencia
             if (productoDTO.getStockDTO().getUnidadesExistencia() == 0 || productoDTO.getStockDTO().getUnidadesExistencia()<productoVentaDTO.getCantidad()){
-                //TODO exception no hay suficientes unidades del producto
+                //TODO exception no hay suficientes unidades del producto para cumplir la orden
             }
 
             productoVentaDTO.setIdProductoRef(idProductoBuscar);// se agrega id
-            productoVentaDTO.setNombre(productoDTO.getNombre() + productoDTO.getCalidad() + (productoDTO.isMarco()? "con marco": "")); //se crea nombre
+            productoVentaDTO.setNombre(productoDTO.getNombre() +" "+ productoDTO.getCalidad() + (productoDTO.isMarco()? " con marco": "")); //se crea nombre
 
             //Se asigna el precio si es tecnico o PG
             /*
@@ -96,8 +112,13 @@ public class VentaFacadeImpl implements VentaFacade {
             productoVentaDTO.setPrecio(ventaRequest.isTecnico()?compraVentaDTO.getVentaTecnico() : compraVentaDTO.getVentaPG());
             //int cantidad = productoVentaDTO.getCantidad();
             //float descuento = productoVentaDTO.getDescuento();
-            productoVentaDTO.setTotal((productoVentaDTO.getPrecio() - productoVentaDTO.getDescuento()) * productoVentaDTO.getCantidad());//Se calcula el total
-            ventaDTO.setTotalGenrealAntesDesc(ventaDTO.getTotalGenrealAntesDesc()+ productoVentaDTO.getTotal());
+            if(productoVentaDTO.getDescuento()>productoVentaDTO.getPrecio()){
+                //TODO lanzar excepcion
+            }
+
+            //Se calcula el total
+            productoVentaDTO.setTotal((productoVentaDTO.getPrecio() - productoVentaDTO.getDescuento()) * productoVentaDTO.getCantidad());
+            ventaDTO.setTotalGenrealAntesDesc(productoVentaDTO.getTotal()+ventaDTO.getTotalGenrealAntesDesc());
             i++;
         }
         ventaDTO.setProductoVentaDTOS(productoVentaDTOS);

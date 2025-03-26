@@ -1,7 +1,9 @@
 package com.agmadera.mitienda.facade.impl;
 
-import com.agmadera.mitienda.entities.ProductoVentaEntity;
 import com.agmadera.mitienda.entities.VentaEntity;
+import com.agmadera.mitienda.exceptions.DescuentoNoValidoException;
+import com.agmadera.mitienda.exceptions.StockInsuficienteException;
+import com.agmadera.mitienda.facade.GananciaFacade;
 import com.agmadera.mitienda.facade.ProductoFacade;
 import com.agmadera.mitienda.facade.VentaFacade;
 import com.agmadera.mitienda.models.CompraVentaDTO;
@@ -28,6 +30,9 @@ public class VentaFacadeImpl implements VentaFacade {
 
     @Autowired
     private VentaPopulator ventaPopulator;
+
+    @Autowired
+    private GananciaFacade gananciaFacade;
 
     @Value("${mensaje.venta}")
     private String mensaje;
@@ -59,14 +64,15 @@ public class VentaFacadeImpl implements VentaFacade {
         float totalGenrealAntesDesc = ventaDTO.getTotalGenrealAntesDesc();
         float descuentosEnTotalGen = ventaDTO.getDescuentosEnTotalGen();
         if(descuentosEnTotalGen>totalGenrealAntesDesc){
-            //TODO lanzar exception
-
+            //lanzar exception
+            throw new DescuentoNoValidoException();
         }
         ventaDTO.setTotalGenreal(totalGenrealAntesDesc - descuentosEnTotalGen);
 
         VentaEntity ventaGuardada = ventaService.guardarVenta(ventaPopulator.dto2Entity(ventaDTO));
         VentaDTO ventaDTOResponse = ventaPopulator.entity2Dto(ventaGuardada);
         ventaDTOResponse.setMensaje(mensaje);
+        gananciaFacade.guardarGanacia(ventaDTOResponse);
         return ventaDTOResponse;
 
         //return ventaDTO;
@@ -88,32 +94,28 @@ public class VentaFacadeImpl implements VentaFacade {
 
             Long idProductoBuscar = productoVentaDTO.getIdProductoRef(); //Obtenemos el id del producto a buscar
 
-
             ProductoDTO productoDTO = productoFacade.buscarId(idProductoBuscar);//Se busca el producto
 
             //Se valida stock en existencia
             if (productoDTO.getStockDTO().getUnidadesExistencia() == 0 || productoDTO.getStockDTO().getUnidadesExistencia()<productoVentaDTO.getCantidad()){
-                //TODO exception no hay suficientes unidades del producto para cumplir la orden
+                //exception no hay suficientes unidades del producto para cumplir la orden
+                if (productoDTO.getStockDTO().getUnidadesExistencia() == 0){
+                    throw new StockInsuficienteException();
+                }
+                throw new StockInsuficienteException(idProductoBuscar, productoDTO.getStockDTO().getUnidadesExistencia());
             }
 
             productoVentaDTO.setIdProductoRef(idProductoBuscar);// se agrega id
             productoVentaDTO.setNombre(productoDTO.getNombre() +" "+ productoDTO.getCalidad() + (productoDTO.isMarco()? " con marco": "")); //se crea nombre
 
             //Se asigna el precio si es tecnico o PG
-            /*
-            float precio = productoDTO.getCompraVentaDTOS().get(productoDTO.getCompraVentaDTOS().size() - 1).getVentaPG();
-
-            if (ventaRequest.isTecnico()){
-                precio = productoDTO.getCompraVentaDTOS().get(productoDTO.getCompraVentaDTOS().size() - 1).getVentaTecnico();
-            }
-            */
             CompraVentaDTO compraVentaDTO = productoDTO.getCompraVentaDTOS().get(productoDTO.getCompraVentaDTOS().size() - 1);
 
             productoVentaDTO.setPrecio(ventaRequest.isTecnico()?compraVentaDTO.getVentaTecnico() : compraVentaDTO.getVentaPG());
-            //int cantidad = productoVentaDTO.getCantidad();
-            //float descuento = productoVentaDTO.getDescuento();
+
             if(productoVentaDTO.getDescuento()>productoVentaDTO.getPrecio()){
-                //TODO lanzar excepcion
+                //lanzar excepcion
+                throw new DescuentoNoValidoException();
             }
 
             //Se calcula el total

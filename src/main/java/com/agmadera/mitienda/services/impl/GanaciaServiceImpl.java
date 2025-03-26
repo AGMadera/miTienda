@@ -24,4 +24,10 @@ public class GanaciaServiceImpl implements GanaciaService {
     public List<GanaciaEntity> mostrarGanancias() {
         return ganaciaRepository.findAll();
     }
+
+    @Override
+    public void guardarGanacias(List<GanaciaEntity> ganaciaEntities) {
+        ganaciaRepository.saveAll(ganaciaEntities);
+
+    }
 }

@@ -1,6 +1,7 @@
 package com.agmadera.mitienda.facade.impl;
 
 import com.agmadera.mitienda.entities.ProductoEntity;
+import com.agmadera.mitienda.exceptions.ProductoNoEncontradoException;
 import com.agmadera.mitienda.facade.ProductoFacade;
 import com.agmadera.mitienda.helpers.CSVCargaMasivaHelper;
 import com.agmadera.mitienda.models.CompraVentaDTO;
@@ -112,7 +113,8 @@ public class ProductoFacadeImpl implements ProductoFacade {
     public ProductoDTO buscarId(Long id) {
         Optional<ProductoEntity> productoEntityFind = service.buscarId(id);
         if(productoEntityFind.isEmpty()){
-            //TODO lanzar exception
+            //lanzar exception
+            throw new ProductoNoEncontradoException("producto con id no encontrado, id:"+ id);
         }
         return populator.entity2Dto(productoEntityFind.get());
     }

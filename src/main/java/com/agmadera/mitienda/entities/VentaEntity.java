@@ -1,5 +1,6 @@
 package com.agmadera.mitienda.entities;
 
+import com.agmadera.mitienda.Enum.TipoPago;
 import jakarta.persistence.*;
 
 import java.util.Date;
@@ -19,7 +20,9 @@ public class VentaEntity {
     private float descuentosEnTotalGen;
     private float totalGenreal;
     private Date fechaVenta;
-    //private String mensaje;
+    private TipoPago tipoPago;
+
+    private  boolean tecnico;
 
     public Long getId() {
         return id;
@@ -69,4 +72,19 @@ public class VentaEntity {
         this.fechaVenta = fechaVenta;
     }
 
+    public TipoPago getTipoPago() {
+        return tipoPago;
+    }
+
+    public void setTipoPago(TipoPago tipoPago) {
+        this.tipoPago = tipoPago;
+    }
+
+    public boolean isTecnico() {
+        return tecnico;
+    }
+
+    public void setTecnico(boolean tecnico) {
+        this.tecnico = tecnico;
+    }
 }

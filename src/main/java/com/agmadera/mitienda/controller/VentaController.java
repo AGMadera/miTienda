@@ -21,7 +21,7 @@ public class VentaController {
     @PostMapping("/orden")
     ResponseEntity<?> crearOrden(@RequestBody VentaRequest venta){
 
-        return ResponseEntity.status(HttpStatus.CREATED).body( ventaFacade.orden(venta));
+        return ResponseEntity.status(HttpStatus.FOUND).body( ventaFacade.orden(venta));
         //return null;
     }
 

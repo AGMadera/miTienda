@@ -34,7 +34,7 @@ public class GananciaFacadeImpl implements GananciaFacade {
         productoVentaDTOS.stream().map(productoVentaDTO -> {
 
             for (int cantidad = productoVentaDTO.getCantidad();cantidad>0;cantidad--){
-                System.out.println("Entro ");
+
                 Long idProductoRef = productoVentaDTO.getIdProductoRef();
                 Long ventaDTOId = ventaDTO.getId();
                 Date fechaVenta = ventaDTO.getFechaVenta();
@@ -42,7 +42,7 @@ public class GananciaFacadeImpl implements GananciaFacade {
                 ProductoDTO productoDTO = productoFacade.buscarId(idProductoRef);
 
                 float compra = productoDTO.getCostoReferencia();
-                float venta = productoVentaDTO.getPrecio();
+                float venta = productoVentaDTO.getPrecio()-productoVentaDTO.getDescuento();
                 float ganacia = venta - compra;
 
                 GanaciaEntity ganaciaEntity = new GanaciaEntity();

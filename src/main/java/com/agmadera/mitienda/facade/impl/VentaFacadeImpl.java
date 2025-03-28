@@ -112,7 +112,6 @@ public class VentaFacadeImpl implements VentaFacade {
             CompraVentaDTO compraVentaDTO = productoDTO.getCompraVentaDTOS().get(productoDTO.getCompraVentaDTOS().size() - 1);
 
             productoVentaDTO.setPrecio(ventaRequest.isTecnico()?compraVentaDTO.getVentaTecnico() : compraVentaDTO.getVentaPG());
-
             if(productoVentaDTO.getDescuento()>productoVentaDTO.getPrecio()){
                 //lanzar excepcion
                 throw new DescuentoNoValidoException();
@@ -121,6 +120,9 @@ public class VentaFacadeImpl implements VentaFacade {
             //Se calcula el total
             productoVentaDTO.setTotal((productoVentaDTO.getPrecio() - productoVentaDTO.getDescuento()) * productoVentaDTO.getCantidad());
             ventaDTO.setTotalGenrealAntesDesc(productoVentaDTO.getTotal()+ventaDTO.getTotalGenrealAntesDesc());
+
+            ventaDTO.setTecnico(ventaRequest.isTecnico());
+
             i++;
         }
         ventaDTO.setProductoVentaDTOS(productoVentaDTOS);

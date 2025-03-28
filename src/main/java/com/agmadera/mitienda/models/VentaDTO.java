@@ -1,6 +1,8 @@
 package com.agmadera.mitienda.models;
 
 
+import com.agmadera.mitienda.Enum.TipoPago;
+
 import java.util.Date;
 import java.util.List;
 
@@ -12,6 +14,7 @@ public class VentaDTO {
     private float descuentosEnTotalGen;
     private float totalGenreal;
     private Date fechaVenta;
+    private TipoPago tipoPago;
     private String mensaje;
     private boolean tecnico;
 
@@ -61,6 +64,14 @@ public class VentaDTO {
 
     public void setFechaVenta(Date fechaVenta) {
         this.fechaVenta = fechaVenta;
+    }
+
+    public TipoPago getTipoPago() {
+        return tipoPago;
+    }
+
+    public void setTipoPago(TipoPago tipoPago) {
+        this.tipoPago = tipoPago;
     }
 
     public String getMensaje() {

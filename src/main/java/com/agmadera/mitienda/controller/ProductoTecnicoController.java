@@ -20,7 +20,6 @@ public class ProductoTecnicoController {
 
     @GetMapping("/buscar/{nombre}")
     ResponseEntity<?> buscarNombre(@PathVariable("nombre") String nombre){
-        System.out.println("entro"+nombre);
         List<ProductoTecResponse> productoTecRespons = productoFacade.buscarNombreTec(nombre);
 
         return ResponseEntity.ok(productoTecRespons);

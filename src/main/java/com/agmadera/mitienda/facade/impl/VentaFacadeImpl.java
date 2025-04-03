@@ -13,6 +13,8 @@ import com.agmadera.mitienda.models.VentaDTO;
 import com.agmadera.mitienda.models.request.VentaRequest;
 import com.agmadera.mitienda.populator.VentaPopulator;
 import com.agmadera.mitienda.services.VentaService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -37,15 +39,36 @@ public class VentaFacadeImpl implements VentaFacade {
     @Value("${mensaje.venta}")
     private String mensaje;
 
+    Logger logger = LoggerFactory.getLogger(VentaFacadeImpl.class);
+
+    private final String LOGGER_GUARDANDO_VENTA_PRODUCTOS = "Guardando venta de productos; #productos totales = ";
+    private final String LOGGER_DESCUENTO_NO_VALIDO = "Decuento no valido, descuentos en total gen > al total gen";
+    private final String LOGGER_GUARDANDO_VENTA_PRODUCTO = "Guardando venta de producto ";
+    private final String LOGGER_NO_HAY_EXISTENCIA = "No hay unidades en existencia";
+    private final String LOGGER_EXISTENCIA_NO_SUFICIENTE = "No hay suficientes unidades";
+    private final String LOGGER_DESCUENTO_MAYOR = "Descuento mayor al precio";
+
 
     @Override
     public VentaDTO guardarVenta(VentaDTO ventaDTO) {
         List<ProductoVentaDTO> productoVentaDTOS = ventaDTO.getProductoVentaDTOS();
+
+        int totalProductos = productoVentaDTOS.size()-1;
+        logger.info(LOGGER_GUARDANDO_VENTA_PRODUCTOS +totalProductos);
+
+        float totalGenrealAntesDesc = ventaDTO.getTotalGenrealAntesDesc();
+        float descuentosEnTotalGen = ventaDTO.getDescuentosEnTotalGen();
+        if(descuentosEnTotalGen>totalGenrealAntesDesc){
+            logger.error(LOGGER_DESCUENTO_NO_VALIDO );
+            throw new DescuentoNoValidoException();
+        }
+
         int i = 0;
         while (productoVentaDTOS.iterator().hasNext()){
             if (productoVentaDTOS.size() == i){
                 break;
             }
+            logger.info(LOGGER_GUARDANDO_VENTA_PRODUCTO +i+"/"+totalProductos);
             ProductoVentaDTO productoVentaDTO = productoVentaDTOS.get(i);
             ProductoDTO productoDTO = productoFacade.buscarId(productoVentaDTO.getIdProductoRef());
 
@@ -61,12 +84,6 @@ public class VentaFacadeImpl implements VentaFacade {
             i++;
         }
 
-        float totalGenrealAntesDesc = ventaDTO.getTotalGenrealAntesDesc();
-        float descuentosEnTotalGen = ventaDTO.getDescuentosEnTotalGen();
-        if(descuentosEnTotalGen>totalGenrealAntesDesc){
-            //lanzar exception
-            throw new DescuentoNoValidoException();
-        }
         ventaDTO.setTotalGenreal(totalGenrealAntesDesc - descuentosEnTotalGen);
 
         VentaEntity ventaGuardada = ventaService.guardarVenta(ventaPopulator.dto2Entity(ventaDTO));
@@ -100,9 +117,16 @@ public class VentaFacadeImpl implements VentaFacade {
             if (productoDTO.getStockDTO().getUnidadesExistencia() == 0 || productoDTO.getStockDTO().getUnidadesExistencia()<productoVentaDTO.getCantidad()){
                 //exception no hay suficientes unidades del producto para cumplir la orden
                 if (productoDTO.getStockDTO().getUnidadesExistencia() == 0){
+                    logger.error(LOGGER_NO_HAY_EXISTENCIA);
                     throw new StockInsuficienteException();
                 }
+                logger.error(LOGGER_EXISTENCIA_NO_SUFICIENTE);
                 throw new StockInsuficienteException(idProductoBuscar, productoDTO.getStockDTO().getUnidadesExistencia());
+            }
+            if(productoVentaDTO.getDescuento()>productoVentaDTO.getPrecio()){
+                //lanzar excepcion
+                logger.error(LOGGER_DESCUENTO_MAYOR );
+                throw new DescuentoNoValidoException();
             }
 
             productoVentaDTO.setIdProductoRef(idProductoBuscar);// se agrega id
@@ -112,10 +136,6 @@ public class VentaFacadeImpl implements VentaFacade {
             CompraVentaDTO compraVentaDTO = productoDTO.getCompraVentaDTOS().get(productoDTO.getCompraVentaDTOS().size() - 1);
 
             productoVentaDTO.setPrecio(ventaRequest.isTecnico()?compraVentaDTO.getVentaTecnico() : compraVentaDTO.getVentaPG());
-            if(productoVentaDTO.getDescuento()>productoVentaDTO.getPrecio()){
-                //lanzar excepcion
-                throw new DescuentoNoValidoException();
-            }
 
             //Se calcula el total
             productoVentaDTO.setTotal((productoVentaDTO.getPrecio() - productoVentaDTO.getDescuento()) * productoVentaDTO.getCantidad());

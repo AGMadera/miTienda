@@ -13,6 +13,7 @@ import com.agmadera.mitienda.models.response.ProductoPGResponse;
 import com.agmadera.mitienda.models.response.ProductoTecResponse;
 import com.agmadera.mitienda.populator.ProductoPopulator;
 import com.agmadera.mitienda.services.ProductoService;
+import com.agmadera.mitienda.services.impl.ProductoServiceImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +31,7 @@ public class ProductoFacadeImpl implements ProductoFacade {
     Logger logger = LoggerFactory.getLogger(ProductoFacadeImpl.class);
     @Autowired
     private ProductoService service;
+    //private final ProductoService service = new ProductoServiceImpl();
 
     @Autowired
     private ProductoPopulator populator;
@@ -40,7 +42,13 @@ public class ProductoFacadeImpl implements ProductoFacade {
     @Value("${precio.pg}")
     private float PRECIO_PUBLICO_GENERAL;
 
-    private String noEncontradoError= "producto con id no encontrado, id:";
+    private final String MENSAJE_EXCEPTION_NO_ENCONTRADO= "producto con id no encontrado, ID: ";
+
+    private final String LOGGER_BUSCANDO_NOMBRE = "Buscando con nombre: ";
+    private final String LOGGER_ACTUALIZANDO_PRODUCTO = "Actulizando producto con id: ";
+    private final String LOGGER_ACTUALIZANDO_COMPATIBLES_PRODUCTO = "Actualizando unicamente compatibles del producto con ID: ";
+    private final String LOGGER_STOCK_EN_CERO = "stock en 0";
+    private final String LOGGER_ACTUALIZANDO_STOCK = "Actualizando stock del producto con ID: ";
 
     @Override
     public ProductoDTO guardarProducto(ProductoDTO dto) {
@@ -65,8 +73,8 @@ public class ProductoFacadeImpl implements ProductoFacade {
         dto.setCostoReferencia(costo);
 
         ProductoEntity productoEntity= populator.dto2Entity(dto);
-        ProductoDTO productoDTO= populator.entity2Dto(service.guardar(productoEntity));
-        return productoDTO;
+        //ProductoDTO productoDTO= populator.entity2Dto(service.guardar(productoEntity));
+        return populator.entity2Dto(service.guardar(productoEntity));
     }
 
     @Override
@@ -112,28 +120,28 @@ public class ProductoFacadeImpl implements ProductoFacade {
             i++;
         }
         List<ProductoEntity> productoEntityList = populator.listDto2entities(dtoList);
-        List<ProductoEntity> productoEntitiesGuardados = service.cargaMasiva(productoEntityList);
+        service.cargaMasiva(productoEntityList);
 
     }
 
     @Override
     public ProductoDTO buscarId(Long id) {
-        logger.info("Buscando con nombre= "+id);
+        logger.info(LOGGER_BUSCANDO_NOMBRE+id);
         Optional<ProductoEntity> productoEntityFind = service.buscarId(id);
         if(productoEntityFind.isEmpty()){
-            logger.info("no encontrado= "+id);
+            logger.info(MENSAJE_EXCEPTION_NO_ENCONTRADO+id);
             //lanzar exception
-            throw new ProductoNoEncontradoException(noEncontradoError+ id);
+            throw new ProductoNoEncontradoException(MENSAJE_EXCEPTION_NO_ENCONTRADO+ id);
         }
         return populator.entity2Dto(productoEntityFind.get());
     }
 
     @Override
     public List<ProductoDTO> buscarNombre(String nombre) {
-        logger.info("Buscando con nombre= "+nombre);
+        logger.info(LOGGER_BUSCANDO_NOMBRE+nombre);
         List<ProductoEntity> productoEntityList = service.buscarNombre(nombre);
-        List<ProductoDTO> productoDTOS = populator.listEntity2dto(productoEntityList);
-        return productoDTOS;
+        //List<ProductoDTO> productoDTOS = populator.listEntity2dto(productoEntityList);
+        return populator.listEntity2dto(productoEntityList);
     }
 
     @Override
@@ -153,28 +161,42 @@ public class ProductoFacadeImpl implements ProductoFacade {
 
         }*/
 
-        List<ProductoDTO> productosDTOS = populator.listEntity2dto(productoEntities);
-        return productosDTOS;
+        //List<ProductoDTO> productosDTOS = populator.listEntity2dto(productoEntities);
+        return populator.listEntity2dto(productoEntities);
     }
 
     @Override
     public List<ProductoTecResponse> buscarNombreTec(String nombre) {
-        logger.info("Buscando con nombre= "+nombre);
+        logger.info(LOGGER_BUSCANDO_NOMBRE+nombre);
         List<ProductoEntity> productoEntityList = service.buscarNombre(nombre);
-        List<ProductoTecResponse> productoTecRespons = populator.listEntity2ProductoTecResponses(productoEntityList);
-        return productoTecRespons;
+        //List<ProductoTecResponse> productoTecRespons = populator.listEntity2ProductoTecResponses(productoEntityList);
+        return populator.listEntity2ProductoTecResponses(productoEntityList);
     }
 
     @Override
     public ProductoDTO actualizarProducto(ProductoDTO dto) {
 
-        logger.info("Actulizando producto con id= "+dto.getId());
+        logger.info(LOGGER_ACTUALIZANDO_PRODUCTO+dto.getId());
 
         ProductoEntity productoEntityDb = service.buscarId(dto.getId()).get(); //Se recupera de la DB
 
         ProductoDTO productoDTODb = populator.entity2Dto(productoEntityDb); //Se convierte a DTODb
 
-        productoDTODb.getHistorialStockDTOS().add(dto.getHistorialStockDTOS().get(0)); //Se adiere historialStock de DTO a List del DTODb
+        try {
+
+            productoDTODb.getHistorialStockDTOS().add(dto.getHistorialStockDTOS().get(0)); //Se adiere historialStock de DTO a List del DTODb
+
+        }catch (Exception ex){
+            logger.info(LOGGER_ACTUALIZANDO_COMPATIBLES_PRODUCTO+dto.getId());
+            productoDTODb.getCompatibles().addAll(dto.getCompatibles());
+            ProductoEntity productoEntity = populator.dto2Entity(productoDTODb);
+
+            return populator.entity2Dto(service.guardar(productoEntity));
+        }
+
+        if(!dto.getCompatibles().isEmpty()||dto.getCompatibles()!=null){
+            productoDTODb.getCompatibles().addAll(dto.getCompatibles());
+        }
 
         CompraVentaDTO compraVentaDTO = dto.getCompraVentaDTOS().get(0); //
 
@@ -206,19 +228,19 @@ public class ProductoFacadeImpl implements ProductoFacade {
         productoDTODb.getCompraVentaDTOS().add(compraVentaDTO);
 
         int unidadesIngresadas = dto.getHistorialStockDTOS().get(0).getUnidadesIngresadas();
-
         int unidadesExistencia = productoDTODb.getStockDTO().getUnidadesExistencia();
+
         productoDTODb.getStockDTO().setUnidadesExistencia(unidadesExistencia + unidadesIngresadas);
 
 
         ProductoEntity productoEntity= populator.dto2Entity(productoDTODb);
-        ProductoDTO productoDTO= populator.entity2Dto(service.guardar(productoEntity));
-        return productoDTO;
+        //ProductoDTO productoDTO= populator.entity2Dto(service.guardar(productoEntity));
+        return populator.entity2Dto(service.guardar(productoEntity));
     }
 
     @Override
     public List<ProductoPGResponse> buscarNombrePG(String nombre) {
-        logger.info("Buscando con nombre= "+nombre);
+        logger.info(LOGGER_BUSCANDO_NOMBRE+nombre);
         List<ProductoEntity> productoEntityList = service.buscarNombre(nombre);
         List<ProductoPGResponse> productoPGRespons = populator.listEntity2ProductoPGResponses(productoEntityList);
         return productoPGRespons;
@@ -226,17 +248,19 @@ public class ProductoFacadeImpl implements ProductoFacade {
 
     @Override
     public ProductoDTO actualizarStock(ProductoDTO dto) {
+        logger.info(LOGGER_ACTUALIZANDO_STOCK+ dto.getId());
         ProductoEntity producto = populator.dto2Entity(dto);
         int unidadesExistencia = producto.getStockEntity().getUnidadesExistencia();
 
         if(unidadesExistencia < 0){
-            logger.error("stock en 0");
+            logger.error(LOGGER_STOCK_EN_CERO);
             throw new StockInsuficienteException();
 
         }
         Optional<ProductoEntity> productoEntityOptional = service.buscarId(producto.getId());
         if (!productoEntityOptional.isPresent()){
-            throw new ProductoNoEncontradoException(noEncontradoError+producto.getId());
+            logger.error(MENSAJE_EXCEPTION_NO_ENCONTRADO);
+            throw new ProductoNoEncontradoException(MENSAJE_EXCEPTION_NO_ENCONTRADO+producto.getId());
         }
         ProductoEntity productoDb = productoEntityOptional.get();
         productoDb.getStockEntity().setUnidadesVendidas(producto.getStockEntity().getUnidadesVendidas());

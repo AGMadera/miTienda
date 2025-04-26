@@ -60,4 +60,5 @@ public class GananciaFacadeImpl implements GananciaFacade {
 
         ganaciaService.guardarGanacias(ganaciaEntities);
     }
+
 }

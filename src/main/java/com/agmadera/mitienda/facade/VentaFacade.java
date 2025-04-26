@@ -7,4 +7,5 @@ import com.agmadera.mitienda.models.request.VentaRequest;
 public interface VentaFacade {
     VentaDTO guardarVenta(VentaDTO ventaDTO);
     VentaDTO orden(VentaRequest ventaRequest);
+    VentaDTO buscarVenta(Long id);
 }

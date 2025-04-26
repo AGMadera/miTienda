@@ -9,6 +9,7 @@ public class VentaRequest {
     private List<ProductoVentaDTO> productoVentaDTOS;
     private boolean tecnico;
 
+    //private Long garantia;
 
 
     public boolean isTecnico() {
@@ -26,4 +27,14 @@ public class VentaRequest {
     public void setProductoVentaDTOS(List<ProductoVentaDTO> productoVentaDTOS) {
         this.productoVentaDTOS = productoVentaDTOS;
     }
+/*
+    public Long getGarantia() {
+        return garantia;
+    }
+
+    public void setGarantia(Long garantia) {
+        this.garantia = garantia;
+    }
+
+ */
 }

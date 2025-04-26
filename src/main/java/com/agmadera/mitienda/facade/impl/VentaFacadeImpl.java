@@ -58,7 +58,7 @@ public class VentaFacadeImpl implements VentaFacade {
 
         float totalGenrealAntesDesc = ventaDTO.getTotalGenrealAntesDesc();
         float descuentosEnTotalGen = ventaDTO.getDescuentosEnTotalGen();
-        if(descuentosEnTotalGen>totalGenrealAntesDesc){
+        if(descuentosEnTotalGen > totalGenrealAntesDesc){
             logger.error(LOGGER_DESCUENTO_NO_VALIDO );
             throw new DescuentoNoValidoException();
         }
@@ -129,6 +129,12 @@ public class VentaFacadeImpl implements VentaFacade {
                 throw new DescuentoNoValidoException();
             }
 
+            /*
+            if (ventaRequest.getGarantia().equals(null)||ventaRequest.getGarantia().equals(0)){
+
+            }
+            */
+
             productoVentaDTO.setIdProductoRef(idProductoBuscar);// se agrega id
             productoVentaDTO.setNombre(productoDTO.getNombre() +" "+ productoDTO.getCalidad() + (productoDTO.isMarco()? " con marco": "")); //se crea nombre
 
@@ -147,6 +153,12 @@ public class VentaFacadeImpl implements VentaFacade {
         }
         ventaDTO.setProductoVentaDTOS(productoVentaDTOS);
         return ventaDTO;
+    }
+
+    @Override
+    public VentaDTO buscarVenta(Long id) {
+        VentaEntity ventaEntity = ventaService.buscarVenta(id);
+        return ventaPopulator.entity2Dto(ventaEntity);
     }
 
 }

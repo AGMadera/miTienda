@@ -6,7 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
+
 
 import java.util.List;
 
@@ -21,7 +21,12 @@ public class ProductoController {
         return ResponseEntity.status(HttpStatus.CREATED).body( productoFacade.guardarProducto(producto));
         //return null;
     }
+    @PutMapping("/actualizar/{id}")
+    ResponseEntity<?> actualizarProducto(@RequestBody ProductoDTO producto, @PathVariable Long id){
 
+        return ResponseEntity.status(HttpStatus.CREATED).body( productoFacade.actualizarProducto(producto,id));
+        //return null;
+    }
     /*
     @PostMapping("/carga_masiva")
     ResponseEntity<?> cargaMasiva(@RequestParam(value = "file") MultipartFile file){
@@ -41,7 +46,7 @@ public class ProductoController {
 
     @GetMapping("/buscar/{nombre}")
     ResponseEntity<?> buscarNombre(@PathVariable("nombre") String nombre){
-        System.out.println("entro"+nombre);
+        //System.out.println("entro"+nombre);
         List<ProductoDTO> productoDTOS = productoFacade.buscarNombre(nombre);
 
         return ResponseEntity.ok(productoDTOS);
@@ -49,11 +54,21 @@ public class ProductoController {
 
     @GetMapping("/mostrar/todo")
     ResponseEntity<?> mostrarTodos(){
-        System.out.println("entro");
+        //System.out.println("entro");
         List<ProductoDTO> productosDTOS = productoFacade.mostrarTodos();
         return ResponseEntity.ok(productosDTOS);
 
     }
+
+    /*
+    //Se comenta codigo para evitar actualizaciones incorrectas
+    @GetMapping("/actualiazar/precios")
+    ResponseEntity<?> actualizarPrecios(){
+        List<ProductoDTO> productosDTOS = productoFacade.actualizarPrecios();
+        return ResponseEntity.ok(productosDTOS);
+
+    }
+    */
 
 
 }

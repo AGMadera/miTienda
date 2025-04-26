@@ -24,4 +24,10 @@ public class ProductoTecnicoController {
 
         return ResponseEntity.ok(productoTecRespons);
     }
+    @GetMapping("/mostrar/todo")
+    ResponseEntity<?> mostrarTodo(){
+        List<ProductoTecResponse> productoTecRespons = productoFacade.mostrarTodosTec();
+
+        return ResponseEntity.ok(productoTecRespons);
+    }
 }

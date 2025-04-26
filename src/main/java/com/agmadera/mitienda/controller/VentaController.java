@@ -1,7 +1,6 @@
 package com.agmadera.mitienda.controller;
 
 import com.agmadera.mitienda.facade.VentaFacade;
-import com.agmadera.mitienda.models.ProductoDTO;
 import com.agmadera.mitienda.models.VentaDTO;
 import com.agmadera.mitienda.models.request.VentaRequest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,7 +20,7 @@ public class VentaController {
     @PostMapping("/orden")
     ResponseEntity<?> crearOrden(@RequestBody VentaRequest venta){
 
-        return ResponseEntity.status(HttpStatus.FOUND).body( ventaFacade.orden(venta));
+        return ResponseEntity.ok( ventaFacade.orden(venta));
         //return null;
     }
 

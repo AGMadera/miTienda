@@ -5,4 +5,5 @@ import com.agmadera.mitienda.entities.VentaEntity;
 
 public interface VentaService {
     VentaEntity guardarVenta(VentaEntity ventaEntity);
+    VentaEntity buscarVenta(Long id);
 }

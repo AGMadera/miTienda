@@ -13,7 +13,6 @@ import com.agmadera.mitienda.models.response.ProductoPGResponse;
 import com.agmadera.mitienda.models.response.ProductoTecResponse;
 import com.agmadera.mitienda.populator.ProductoPopulator;
 import com.agmadera.mitienda.services.ProductoService;
-import com.agmadera.mitienda.services.impl.ProductoServiceImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,8 +21,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Component
 public class ProductoFacadeImpl implements ProductoFacade {
@@ -194,7 +195,7 @@ public class ProductoFacadeImpl implements ProductoFacade {
             return populator.entity2Dto(service.guardar(productoEntity));
         }
 
-        if(!dto.getCompatibles().isEmpty()||dto.getCompatibles()!=null){
+        if(dto.getCompatibles()!=null||!dto.getCompatibles().isEmpty()){
             productoDTODb.getCompatibles().addAll(dto.getCompatibles());
         }
 
@@ -216,14 +217,13 @@ public class ProductoFacadeImpl implements ProductoFacade {
            costo = dto.getCompraVentaDTOS().get(0).getCosto();
            productoDTODb.setCostoReferencia(costo);
         }
+        productoDTODb.setUsarCostoReferencia(dto.isUsarCostoReferencia());
 
         float precioPG = generarPrecio(costo, PRECIO_PUBLICO_GENERAL);
         float precioTecnico = generarPrecio(costo, PRECIO_TECNICO);
 
         compraVentaDTO.setVentaPG(precioPG);
         compraVentaDTO.setVentaTecnico(precioTecnico);
-
-
 
         productoDTODb.getCompraVentaDTOS().add(compraVentaDTO);
 
@@ -270,10 +270,42 @@ public class ProductoFacadeImpl implements ProductoFacade {
 
     }
 
+    @Override
+    public ProductoDTO actualizarProducto(ProductoDTO dto, Long id) {
+        Optional<ProductoEntity> productoEntityOptional = service.buscarId(id);
+        if(productoEntityOptional.isEmpty()){
+            throw new ProductoNoEncontradoException(MENSAJE_EXCEPTION_NO_ENCONTRADO + id);
+        }
+        return actualizarProducto(dto);
+    }
+
+    @Override
+    public List<ProductoTecResponse> mostrarTodosTec() {
+        List<ProductoEntity> productoEntities = service.mostrarTodos();
+
+        return populator.listEntity2ProductoTecResponses(productoEntities);
+    }
+
+    @Override
+    public List<ProductoDTO> actualizarPrecios() {
+        List<ProductoDTO> productoDTOS = mostrarTodos();
+        productoDTOS.stream().map(productoDTO ->{
+            CompraVentaDTO nuevoCompraVentaDTO = new CompraVentaDTO();
+            nuevoCompraVentaDTO.setVentaPG(generarPrecio(productoDTO.getCostoReferencia(),PRECIO_PUBLICO_GENERAL));
+            nuevoCompraVentaDTO.setVentaTecnico(generarPrecio(productoDTO.getCostoReferencia(),PRECIO_TECNICO));
+            nuevoCompraVentaDTO.setCosto(productoDTO.getCostoReferencia());
+            nuevoCompraVentaDTO.setFecha(new Date());
+            productoDTO.getCompraVentaDTOS().add(nuevoCompraVentaDTO);
+            return productoDTO;
+        }).collect(Collectors.toList());
+        List<ProductoEntity> productoEntityList = service.cargaMasiva(populator.listDto2entities(productoDTOS));
+        return populator.listEntity2dto(productoEntityList);
+    }
+
     private int ingresarStock(ProductoDTO dto){
         int unidadesIngresadas;
         int unidadesExistencia;
-        if(dto.getHistorialStockDTOS().isEmpty()){
+        if(dto.getHistorialStockDTOS().isEmpty()||dto.getHistorialStockDTOS()==null){
             unidadesIngresadas = 0;
             unidadesExistencia = dto.getHistorialStockDTOS().get(dto.getHistorialStockDTOS().size()-1).getUnidadesIngresadas();
         }else {
@@ -288,9 +320,12 @@ public class ProductoFacadeImpl implements ProductoFacade {
     private float generarPrecio(float costo, float precio){
         double costoAjustado = Math.ceil(costo / 10) * 10;
         float ajustado = (float) costoAjustado;
-        float precioFinal = ajustado + precio;
+        float precioPreFinal = ajustado + precio;
+        //float precioFinal = (float) (Math.ceil(precioPreFinal / 10) * 10);
 
-        return precioFinal;
+        return (float) (Math.ceil(precioPreFinal / 10) * 10);
+
+        //return (float) Math.ceil(costo + precio / 10) * 10;
     }
 
 

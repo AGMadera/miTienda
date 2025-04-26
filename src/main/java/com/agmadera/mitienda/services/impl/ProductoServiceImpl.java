@@ -13,8 +13,13 @@ import java.util.Optional;
 @Service
 public class ProductoServiceImpl implements ProductoService {
 
+    //@Autowired
+    //ProductoRepository repository;
+    private final ProductoRepository repository;
     @Autowired
-    ProductoRepository repository;
+    public ProductoServiceImpl(ProductoRepository repository){
+        this.repository = repository;
+    }
 
 
     @Override

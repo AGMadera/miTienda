@@ -1,11 +1,8 @@
 package com.agmadera.mitienda.controller;
 
-import com.agmadera.mitienda.entities.ProductoEntity;
-import com.agmadera.mitienda.entities.StockEntity;
-import com.agmadera.mitienda.facade.ProductoFacade;
+
 import com.agmadera.mitienda.facade.StockFacade;
 import com.agmadera.mitienda.models.ProductoDTO;
-import com.agmadera.mitienda.services.StockService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

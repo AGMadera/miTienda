@@ -1,9 +1,6 @@
 package com.agmadera.mitienda.entities;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 
 import java.util.Date;
 
@@ -19,6 +16,8 @@ public class GanaciaEntity {
     private float compra;
     private float venta;
     private float ganacia;
+    @Column(nullable=true, columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private boolean garantia;
 
     public GanaciaEntity(Long idVentaRef, Long idProductoRef, Date fecha) {
         this.idVentaRef = idVentaRef;
@@ -84,5 +83,13 @@ public class GanaciaEntity {
 
     public void setGanacia(float ganacia) {
         this.ganacia = ganacia;
+    }
+
+    public boolean isGarantia() {
+        return garantia;
+    }
+
+    public void setGarantia(boolean garantia) {
+        this.garantia = garantia;
     }
 }

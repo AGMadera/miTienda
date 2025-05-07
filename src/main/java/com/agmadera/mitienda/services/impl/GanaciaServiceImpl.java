@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class GanaciaServiceImpl implements GanaciaService {
@@ -29,5 +30,13 @@ public class GanaciaServiceImpl implements GanaciaService {
     public void guardarGanacias(List<GanaciaEntity> ganaciaEntities) {
         ganaciaRepository.saveAll(ganaciaEntities);
 
+    }
+
+    @Override
+    public List<GanaciaEntity> buscarGanaciaVentas(Long idVenta, Long idProdRef) {
+        Optional<List<GanaciaEntity>> ganaciaEntityList = ganaciaRepository.findByIdVentaRefAndIdProductoRef(idVenta,idProdRef);
+
+        return ganaciaEntityList.get();
+        //return null;
     }
 }

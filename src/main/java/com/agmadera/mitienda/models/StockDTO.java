@@ -1,10 +1,10 @@
 package com.agmadera.mitienda.models;
 
-import com.agmadera.mitienda.entities.ProductoEntity;
+
 
 public class StockDTO {
     private Long id;
-    private ProductoEntity producto;
+    private ProductoDTO productoDTO;
     private int unidadesVendidas;
     private int unidadesExistencia;
 
@@ -16,12 +16,12 @@ public class StockDTO {
         this.id = id;
     }
 
-    public ProductoEntity getProducto() {
-        return producto;
+    public ProductoDTO getProductoDTO() {
+        return productoDTO;
     }
 
-    public void setProducto(ProductoEntity producto) {
-        this.producto = producto;
+    public void setProductoDTO(ProductoDTO productoDTO) {
+        this.productoDTO = productoDTO;
     }
 
     public int getUnidadesVendidas() {

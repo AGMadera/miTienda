@@ -1,11 +1,11 @@
 package com.agmadera.mitienda.facade;
 
-import com.agmadera.mitienda.entities.GanaciaEntity;
+import com.agmadera.mitienda.Enum.TipoGarantia;
 import com.agmadera.mitienda.models.VentaDTO;
-
-import java.util.Date;
 
 public interface GananciaFacade {
     void guardarGanacia(VentaDTO ventaDTO);
+    void actualizarGanacia(VentaDTO ventaDTO, Long idProdRef, TipoGarantia tipoGarantia);
+
 
 }

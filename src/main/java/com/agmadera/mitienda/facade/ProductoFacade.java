@@ -26,7 +26,7 @@ public interface ProductoFacade {
 
     List<ProductoPGResponse> buscarNombrePG(String nombre);
 
-    ProductoDTO actualizarStock(ProductoDTO dto);
+    ProductoDTO actualizarStockVenta(ProductoDTO dto);
     ProductoDTO actualizarProducto(ProductoDTO dto,Long id);
 
     List<ProductoTecResponse> mostrarTodosTec();

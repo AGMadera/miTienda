@@ -18,6 +18,8 @@ public class VentaDTO {
     private String mensaje;
     private boolean tecnico;
 
+    private String folioGarantia;
+
     public Long getId() {
         return id;
     }
@@ -88,5 +90,13 @@ public class VentaDTO {
 
     public void setTecnico(boolean tecnico) {
         this.tecnico = tecnico;
+    }
+
+    public String getFolioGarantia() {
+        return folioGarantia;
+    }
+
+    public void setFolioGarantia(String folioGarantia) {
+        this.folioGarantia = folioGarantia;
     }
 }

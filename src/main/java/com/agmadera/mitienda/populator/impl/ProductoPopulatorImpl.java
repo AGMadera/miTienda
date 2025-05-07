@@ -1,5 +1,6 @@
 package com.agmadera.mitienda.populator.impl;
 
+import com.agmadera.mitienda.Enum.TipoCliente;
 import com.agmadera.mitienda.entities.CompraVentaEntity;
 import com.agmadera.mitienda.entities.ProductoEntity;
 import com.agmadera.mitienda.models.ProductoDTO;
@@ -50,21 +51,7 @@ public class ProductoPopulatorImpl implements ProductoPopulator {
         List<ProductoTecResponse> productoTecRespons = entities.stream().map(entity ->
                 mapper.map(entity, ProductoTecResponse.class)).collect(Collectors.toList());
 
-        int i = 0;
-
-        ArrayList<Float> precioTemp = new ArrayList<>();
-
-        while (entities.iterator().hasNext()){
-            if(i == entities.size()){
-                break;
-            }
-            int sizeCV = entities.get(i).getCompraVentaEntity().size();
-            List<CompraVentaEntity> compraVentaEntities = entities.get(i).getCompraVentaEntity();
-            float ventaTecnico = compraVentaEntities.get(sizeCV - 1).getVentaTecnico();
-
-            precioTemp.add(ventaTecnico);
-            i++;
-        }
+        ArrayList<Float> precioTemp = precioTemp(entities,TipoCliente.TECNICO);
 
         int cont=0;
         while (productoTecRespons.iterator().hasNext()){
@@ -83,21 +70,7 @@ public class ProductoPopulatorImpl implements ProductoPopulator {
         List<ProductoPGResponse> productoPGRespons = entities.stream().map(entity ->
                 mapper.map(entity, ProductoPGResponse.class)).collect(Collectors.toList());
 
-        int i = 0;
-
-        ArrayList<Float> precioTemp = new ArrayList<>();
-
-        while (entities.iterator().hasNext()){
-            if(i == entities.size()){
-                break;
-            }
-            int sizeCV = entities.get(i).getCompraVentaEntity().size();
-            List<CompraVentaEntity> compraVentaEntities = entities.get(i).getCompraVentaEntity();
-            float ventaPG = compraVentaEntities.get(sizeCV - 1).getVentaPG();
-
-            precioTemp.add(ventaPG);
-            i++;
-        }
+        ArrayList<Float> precioTemp = precioTemp(entities,TipoCliente.PG);
 
         int cont=0;
         while (productoPGRespons.iterator().hasNext()){
@@ -109,6 +82,26 @@ public class ProductoPopulatorImpl implements ProductoPopulator {
         }
 
         return productoPGRespons;
+    }
+
+    private ArrayList<Float> precioTemp (List<ProductoEntity> entities, TipoCliente cliente){
+        int i = 0;
+        ArrayList<Float> precioTemp = new ArrayList<>();
+        while (entities.iterator().hasNext()){
+            if(i == entities.size()){
+                break;
+            }
+            int sizeCV = entities.get(i).getCompraVentaEntity().size();
+            List<CompraVentaEntity> compraVentaEntities = entities.get(i).getCompraVentaEntity();
+            float venta = 0;
+            venta = compraVentaEntities.get(sizeCV - 1).getVentaTecnico();
+            if(cliente.ordinal() == TipoCliente.PG.ordinal()) {
+                venta = compraVentaEntities.get(sizeCV - 1).getVentaPG();
+            }
+            precioTemp.add(venta);
+            i++;
+        }
+        return precioTemp;
     }
 
 

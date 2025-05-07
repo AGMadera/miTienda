@@ -20,6 +20,8 @@ public class VentaEntity {
     private float descuentosEnTotalGen;
     private float totalGenreal;
     private Date fechaVenta;
+
+    @Enumerated(EnumType.STRING)
     private TipoPago tipoPago;
 
     private  boolean tecnico;

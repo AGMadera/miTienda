@@ -9,4 +9,6 @@ public interface GanaciaService {
     List<GanaciaEntity> mostrarGanancias();
 
     void guardarGanacias(List<GanaciaEntity> ganaciaEntities);
+
+    List<GanaciaEntity> buscarGanaciaVentas(Long idVenta, Long idProdRef);
 }

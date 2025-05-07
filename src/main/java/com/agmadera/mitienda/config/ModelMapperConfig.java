@@ -1,13 +1,15 @@
 package com.agmadera.mitienda.config;
 
+import com.agmadera.mitienda.entities.GarantiaReembolso;
+import com.agmadera.mitienda.entities.GarantiaVale;
 import com.agmadera.mitienda.entities.ProductoEntity;
 import com.agmadera.mitienda.entities.VentaEntity;
 import com.agmadera.mitienda.models.ProductoDTO;
 import com.agmadera.mitienda.models.VentaDTO;
 import com.agmadera.mitienda.models.response.ProductoPGResponse;
 import com.agmadera.mitienda.models.response.ProductoTecResponse;
-import org.modelmapper.Condition;
-import org.modelmapper.Converter;
+import com.agmadera.mitienda.models.response.ReembolsoResponse;
+import com.agmadera.mitienda.models.response.ValeResponse;
 import org.modelmapper.ModelMapper;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -41,7 +43,10 @@ public class ModelMapperConfig {
                 .addMapping(src ->src.getProductoVentaEntity(), VentaDTO::setProductoVentaDTOS);
         modelMapper.typeMap(VentaDTO.class, VentaEntity.class)
                 .addMapping(src-> src.getProductoVentaDTOS(), VentaEntity::setProductoVentaEntity);
-
+        modelMapper.typeMap(GarantiaReembolso.class, ReembolsoResponse.class)
+                .addMapping(src -> src.getIdVenta(),ReembolsoResponse::setIdCompra);
+        modelMapper.typeMap(GarantiaVale.class, ValeResponse.class)
+                .addMapping(src->src.getHistorialVales(),ValeResponse::setHistorialGarantiaValesDtos);
 
 
         return modelMapper;

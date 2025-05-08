@@ -33,6 +33,7 @@ public class ProductoFacadeImpl implements ProductoFacade {
     private static final Logger logger = LoggerFactory.getLogger(ProductoFacadeImpl.class);
     private static final String MENSAJE_EXCEPTION_NO_ENCONTRADO= "producto con id no encontrado, ID: ";
     private static final String LOGGER_BUSCANDO_NOMBRE = "Buscando con nombre: {}";
+    private static final String LOGGER_PRODUCTO_NO_ENCONTRADO= "producto con id no encontrado, ID: {}";
     private static final String LOGGER_ACTUALIZANDO_PRODUCTO = "Se inicia actualizacion de producto con id: {}";
     private static final String LOGGER_ACTUALIZANDO_FIN_PRODUCTO = "Se finaliza actualizacion de producto con id: {}";
     private static final String LOGGER_ACTUALIZANDO_COMPATIBLES_PRODUCTO = "Actualizando unicamente compatibles del producto con ID: {}";
@@ -81,9 +82,10 @@ public class ProductoFacadeImpl implements ProductoFacade {
     @Transactional
     public void cargaMasivaProducto(List<ProductoDTO> dtoList) {
 
-        for (ProductoDTO productoTempDto: dtoList){
+        /*for (ProductoDTO productoTempDto: dtoList){
             crearNuevoProductoConStock(productoTempDto);
-        }
+        }*/
+        dtoList.forEach(this::crearNuevoProductoConStock);
         List<ProductoEntity> productoEntityList = populator.listDto2entities(dtoList);
         service.cargaMasiva(productoEntityList);
 
@@ -121,31 +123,49 @@ public class ProductoFacadeImpl implements ProductoFacade {
     @Override
     @Transactional
     public ProductoDTO actualizarProducto(ProductoDTO dto) {
-
         logger.info(LOGGER_ACTUALIZANDO_PRODUCTO,dto.getId());
-
+        //Se busca un productoDto en la base de datos si no  esta lanza una excepcion
         ProductoEntity productoEntityDb = service.buscarId(dto.getId()).orElseThrow(() -> new ProductoNoEncontradoException(MENSAJE_EXCEPTION_NO_ENCONTRADO+dto.getId())); //Se recupera de la DB
 
-        ProductoDTO productoDTODb = populator.entity2Dto(productoEntityDb); //Se convierte a DTODb
+        //Se convierte a DTODb
+        ProductoDTO productoDTODb = populator.entity2Dto(productoEntityDb);
 
-        try {
-
-            productoDTODb.getHistorialStockDTOS().add(dto.getHistorialStockDTOS().get(0)); //Se adiere historialStock de DTO a List del DTODb
-
-        }catch (Exception ex){
+        //Se verifica que el historialStock no sea vacio o nulo
+        if(dto.getHistorialStockDTOS() != null && !dto.getHistorialStockDTOS().isEmpty()){
+            //Si es diferente de nulo o diferente de vacio
+            //Se agrega el nuevo historialStock
+            productoDTODb.getHistorialStockDTOS().add(dto.getHistorialStockDTOS().get(0));
+        }else {
+            //Si es nulo o vacio
             logger.info(LOGGER_ACTUALIZANDO_COMPATIBLES_PRODUCTO,dto.getId());
+            //Se agregan los compatibles
+            //Se verifica que no sean nulos
+            if(dto.getCompatibles()==null||dto.getCompatibles().isEmpty()){
+                //Si lo son se lanza excepcion
+                throw new IllegalArgumentException("Debe contener al menos un valor en compatible");
+            }
             productoDTODb.getCompatibles().addAll(dto.getCompatibles());
             ProductoEntity productoEntity = populator.dto2Entity(productoDTODb);
 
+            //Se retorna el productoDto
             return populator.entity2Dto(service.guardar(productoEntity));
         }
-
+/////
         if(dto.getCompatibles()!=null||!dto.getCompatibles().isEmpty()){
             productoDTODb.getCompatibles().addAll(dto.getCompatibles());
         }
+        /*
+        if(dto.getCompatibles()!=null||!dto.getCompatibles().isEmpty()) {
+            dto.getCompatibles().forEach(compatibleDTO -> {
+                if(productoDTODb.getCompatibles().contains(compatibleDTO)){
+                    productoDTODb.getCompatibles().add(compatibleDTO);
+                }
+            });
 
-        //CompraVentaDTO compraVentaDTO = dto.getCompraVentaDTOS().get(0); //
+        }
+        */
 
+//////
         float costo = productoDTODb.getCostoReferencia();
 
         if(!dto.isUsarCostoReferencia()){
@@ -154,15 +174,9 @@ public class ProductoFacadeImpl implements ProductoFacade {
         }
         productoDTODb.setUsarCostoReferencia(dto.isUsarCostoReferencia());
 
-        /*float precioPG = precioStrategy.calcularPrecioPG(costo);
-        float precioTecnico = precioStrategy.calcularPrecioTecnico(costo);
+        configurarPrecios(productoDTODb,costo, dto.getCompraVentaDTOS().get(0));
+        productoDTODb.getCompraVentaDTOS().add(dto.getCompraVentaDTOS().get(0));
 
-        compraVentaDTO.setVentaPG(precioPG);
-        compraVentaDTO.setVentaTecnico(precioTecnico);
-
-        productoDTODb.getCompraVentaDTOS().add(compraVentaDTO);*/
-
-        configurarPrecios(productoDTODb,costo, dto.getCompraVentaDTOS().get(0),productoDTODb.getCostoReferencia());
 
         int unidadesIngresadas = dto.getHistorialStockDTOS().get(0).getUnidadesIngresadas();
         int unidadesExistencia = productoDTODb.getStockDTO().getUnidadesExistencia();
@@ -186,18 +200,27 @@ public class ProductoFacadeImpl implements ProductoFacade {
     @Transactional
     public ProductoDTO actualizarStockVenta(ProductoDTO dto) {
         logger.info(LOGGER_ACTUALIZANDO_STOCK,dto.getId());
+        //Se convierte dto a entityDto
         ProductoEntity producto = populator.dto2Entity(dto);
+        //si hay las unidades de la entityDto son menores a 0
         if(producto.getStockEntity().getUnidadesExistencia() < 0){
             logger.error(LOGGER_STOCK_EN_CERO);
             throw new StockInsuficienteException();
         }
-
+        //Se busca la entityDto en Optional<EntityDB> por id
         Optional<ProductoEntity> productoEntityOptional = service.buscarId(producto.getId());
+        //Si el optional esta vacio lanza error
         if (productoEntityOptional.isEmpty()){
-            logger.error(MENSAJE_EXCEPTION_NO_ENCONTRADO+producto.getId());
+            logger.error(LOGGER_PRODUCTO_NO_ENCONTRADO,producto.getId());
             throw new ProductoNoEncontradoException(MENSAJE_EXCEPTION_NO_ENCONTRADO+producto.getId());
         }
+        //Se obtiene la Entity del optional
         ProductoEntity productoDb = productoEntityOptional.get();
+        /*
+        //Se agregan las nuevas unidades vendidas y las unidades en existencia
+        //Unidades vendidas hace referencia a las unidades que se han vendido de manera historica del producto no a las unidades a vender
+        //Esa validacion se hace en VentaFacadeImpl
+        */
         productoDb.getStockEntity().setUnidadesVendidas(producto.getStockEntity().getUnidadesVendidas());
         productoDb.getStockEntity().setUnidadesExistencia(producto.getStockEntity().getUnidadesExistencia());
 
@@ -257,50 +280,20 @@ public class ProductoFacadeImpl implements ProductoFacade {
         StockDTO stockDTO = new StockDTO();
         dto.setStockDTO(stockDTO);
         dto.getStockDTO().setUnidadesExistencia(ingresarStock(dto));
+        dto.setCostoReferencia(dto.getCompraVentaDTOS().get(dto.getCompraVentaDTOS().size() - 1).getCosto());
 
-        /*float costo = dto.getCompraVentaDTOS().get(dto.getCompraVentaDTOS().size() - 1).getCosto();
+        configurarPrecios(dto,dto.getCompraVentaDTOS().get(dto.getCompraVentaDTOS().size() - 1).getCosto(),dto.getCompraVentaDTOS().get(dto.getCompraVentaDTOS().size() - 1));
 
-        float precioPG = precioStrategy.calcularPrecioPG(costo);
-        float precioTecnico = precioStrategy.calcularPrecioTecnico(costo);
-
-        dto.getCompraVentaDTOS().get(dto.getCompraVentaDTOS().size()-1).setVentaTecnico(precioTecnico);
-        dto.getCompraVentaDTOS().get(dto.getCompraVentaDTOS().size()-1).setVentaPG(precioPG);
-
-        dto.setCostoReferencia(costo);
-
-         */
-        configurarPrecios(dto,0,dto.getCompraVentaDTOS().get(dto.getCompraVentaDTOS().size() - 1),dto.getCompraVentaDTOS().get(dto.getCompraVentaDTOS().size() - 1).getCosto());
         return dto;
     }
 
-    /*private void configurarPrecios(ProductoDTO dto){
-
-        CompraVentaDTO compraVentaDTOUltimo = dto.getCompraVentaDTOS().get(dto.getCompraVentaDTOS().size() - 1);
-        float costo = compraVentaDTOUltimo.getCosto();
-        float precioPG = precioStrategy.calcularPrecioPG(costo);
-        float precioTecnico = precioStrategy.calcularPrecioTecnico(costo);
-        compraVentaDTOUltimo.setVentaTecnico(precioTecnico);
-        compraVentaDTOUltimo.setVentaPG(precioPG);
-        dto.setCostoReferencia(costo);
-    }*/
-
-    private void configurarPrecios(ProductoDTO dto, float costo, CompraVentaDTO compraVentaDTO, float costoRef){
-
-        float flag = costo;
-
-        if (costo == 0){
-            costo = dto.getCompraVentaDTOS().get(0).getCosto();
-        }
+    private void configurarPrecios(ProductoDTO dto, float costo, CompraVentaDTO compraVentaDTO){
 
         float precioPG = precioStrategy.calcularPrecioPG(costo);
         float precioTecnico = precioStrategy.calcularPrecioTecnico(costo);
         compraVentaDTO.setVentaTecnico(precioTecnico);
         compraVentaDTO.setVentaPG(precioPG);
-        dto.setCostoReferencia(costoRef);
-
-        if(flag !=0){
-            dto.getCompraVentaDTOS().add(compraVentaDTO);
-        }
+        dto.setCostoReferencia(dto.getCostoReferencia());
 
     }
 

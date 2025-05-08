@@ -1,6 +1,6 @@
-package com.agmadera.mitienda.Strategy.impl;
+package com.agmadera.mitienda.strategy.impl;
 
-import com.agmadera.mitienda.Strategy.PrecioStrategy;
+import com.agmadera.mitienda.strategy.PrecioStrategy;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;

@@ -1,6 +1,5 @@
 package com.agmadera.mitienda.facade.impl;
 
-import com.agmadera.mitienda.Strategy.PrecioStrategy;
 import com.agmadera.mitienda.entities.ProductoEntity;
 import com.agmadera.mitienda.exceptions.ProductoNoEncontradoException;
 import com.agmadera.mitienda.exceptions.StockInsuficienteException;
@@ -13,12 +12,13 @@ import com.agmadera.mitienda.models.response.ProductoPGResponse;
 import com.agmadera.mitienda.models.response.ProductoTecResponse;
 import com.agmadera.mitienda.populator.ProductoPopulator;
 import com.agmadera.mitienda.services.ProductoService;
+import com.agmadera.mitienda.strategy.PrecioStrategy;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -43,9 +43,8 @@ public class ProductoFacadeImpl implements ProductoFacade {
     //private final ProductoService service = new ProductoServiceImpl();
     @Autowired
     private ProductoPopulator populator;
-
-    @Qualifier("margenFijoStrategy")
     @Autowired
+    @Qualifier("margenFijoStrategy")
     private PrecioStrategy precioStrategy;
     
 
@@ -100,7 +99,7 @@ public class ProductoFacadeImpl implements ProductoFacade {
 
     @Override
     public List<ProductoDTO> buscarNombre(String nombre) {
-        logger.info(LOGGER_BUSCANDO_NOMBRE+nombre);
+        logger.info(LOGGER_BUSCANDO_NOMBRE,nombre);
         List<ProductoEntity> productoEntityList = service.buscarNombre(nombre);
         return populator.listEntity2dto(productoEntityList);
     }
@@ -112,9 +111,9 @@ public class ProductoFacadeImpl implements ProductoFacade {
     }
 
     @Override
-    @Cacheable (value = "producto", key = "#nombre")
+    @CacheEvict(value = {"producto"}, allEntries = true)
     public List<ProductoTecResponse> buscarNombreTec(String nombre) {
-        logger.info(LOGGER_BUSCANDO_NOMBRE+nombre);
+        logger.info(LOGGER_BUSCANDO_NOMBRE,nombre);
         List<ProductoEntity> productoEntityList = service.buscarNombre(nombre);
         return populator.listEntity2ProductoTecResponses(productoEntityList);
     }
@@ -145,7 +144,7 @@ public class ProductoFacadeImpl implements ProductoFacade {
             productoDTODb.getCompatibles().addAll(dto.getCompatibles());
         }
 
-        CompraVentaDTO compraVentaDTO = dto.getCompraVentaDTOS().get(0); //
+        //CompraVentaDTO compraVentaDTO = dto.getCompraVentaDTOS().get(0); //
 
         float costo = productoDTODb.getCostoReferencia();
 
@@ -155,13 +154,15 @@ public class ProductoFacadeImpl implements ProductoFacade {
         }
         productoDTODb.setUsarCostoReferencia(dto.isUsarCostoReferencia());
 
-        float precioPG = precioStrategy.calcularPrecioPG(costo);
+        /*float precioPG = precioStrategy.calcularPrecioPG(costo);
         float precioTecnico = precioStrategy.calcularPrecioTecnico(costo);
 
         compraVentaDTO.setVentaPG(precioPG);
         compraVentaDTO.setVentaTecnico(precioTecnico);
 
-        productoDTODb.getCompraVentaDTOS().add(compraVentaDTO);
+        productoDTODb.getCompraVentaDTOS().add(compraVentaDTO);*/
+
+        configurarPrecios(productoDTODb,costo, dto.getCompraVentaDTOS().get(0),productoDTODb.getCostoReferencia());
 
         int unidadesIngresadas = dto.getHistorialStockDTOS().get(0).getUnidadesIngresadas();
         int unidadesExistencia = productoDTODb.getStockDTO().getUnidadesExistencia();
@@ -174,9 +175,9 @@ public class ProductoFacadeImpl implements ProductoFacade {
     }
 
     @Override
-    @Cacheable (value = "producto", key = "#nombre")
+    @CacheEvict(value = {"producto"}, allEntries = true)
     public List<ProductoPGResponse> buscarNombrePG(String nombre) {
-        logger.info(LOGGER_BUSCANDO_NOMBRE+nombre);
+        logger.info(LOGGER_BUSCANDO_NOMBRE,nombre);
         List<ProductoEntity> productoEntityList = service.buscarNombre(nombre);
         return populator.listEntity2ProductoPGResponses(productoEntityList);
     }
@@ -257,7 +258,7 @@ public class ProductoFacadeImpl implements ProductoFacade {
         dto.setStockDTO(stockDTO);
         dto.getStockDTO().setUnidadesExistencia(ingresarStock(dto));
 
-        float costo = dto.getCompraVentaDTOS().get(dto.getCompraVentaDTOS().size() - 1).getCosto();
+        /*float costo = dto.getCompraVentaDTOS().get(dto.getCompraVentaDTOS().size() - 1).getCosto();
 
         float precioPG = precioStrategy.calcularPrecioPG(costo);
         float precioTecnico = precioStrategy.calcularPrecioTecnico(costo);
@@ -266,8 +267,41 @@ public class ProductoFacadeImpl implements ProductoFacade {
         dto.getCompraVentaDTOS().get(dto.getCompraVentaDTOS().size()-1).setVentaPG(precioPG);
 
         dto.setCostoReferencia(costo);
+
+         */
+        configurarPrecios(dto,0,dto.getCompraVentaDTOS().get(dto.getCompraVentaDTOS().size() - 1),dto.getCompraVentaDTOS().get(dto.getCompraVentaDTOS().size() - 1).getCosto());
         return dto;
     }
 
+    /*private void configurarPrecios(ProductoDTO dto){
+
+        CompraVentaDTO compraVentaDTOUltimo = dto.getCompraVentaDTOS().get(dto.getCompraVentaDTOS().size() - 1);
+        float costo = compraVentaDTOUltimo.getCosto();
+        float precioPG = precioStrategy.calcularPrecioPG(costo);
+        float precioTecnico = precioStrategy.calcularPrecioTecnico(costo);
+        compraVentaDTOUltimo.setVentaTecnico(precioTecnico);
+        compraVentaDTOUltimo.setVentaPG(precioPG);
+        dto.setCostoReferencia(costo);
+    }*/
+
+    private void configurarPrecios(ProductoDTO dto, float costo, CompraVentaDTO compraVentaDTO, float costoRef){
+
+        float flag = costo;
+
+        if (costo == 0){
+            costo = dto.getCompraVentaDTOS().get(0).getCosto();
+        }
+
+        float precioPG = precioStrategy.calcularPrecioPG(costo);
+        float precioTecnico = precioStrategy.calcularPrecioTecnico(costo);
+        compraVentaDTO.setVentaTecnico(precioTecnico);
+        compraVentaDTO.setVentaPG(precioPG);
+        dto.setCostoReferencia(costoRef);
+
+        if(flag !=0){
+            dto.getCompraVentaDTOS().add(compraVentaDTO);
+        }
+
+    }
 
 }

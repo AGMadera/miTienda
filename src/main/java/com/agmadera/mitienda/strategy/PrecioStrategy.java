@@ -1,4 +1,4 @@
-package com.agmadera.mitienda.Strategy;
+package com.agmadera.mitienda.strategy;
 
 public interface PrecioStrategy {
     float calcularPrecioPG(float costo);

@@ -79,9 +79,14 @@ public class ProductoFacadeImpl implements ProductoFacade {
     @Transactional
     public void cargaMasivaProducto(List<ProductoDTO> dtoList) {
 
-        dtoList.forEach(this::crearNuevoProductoConStock);
+        //dtoList.forEach(this::crearNuevoProductoConStock);
+        /*dtoList.stream().map(this::crearNuevoProductoConStock).collect(Collectors.toList());
         List<ProductoEntity> productoEntityList = populator.listDto2entities(dtoList);
-        service.cargaMasiva(productoEntityList);
+        service.cargaMasiva(productoEntityList);*/
+        service.cargaMasiva(dtoList.stream().map(productoDTO -> {
+            ProductoDTO productoProcesado = crearNuevoProductoConStock(productoDTO);
+            return populator.dto2Entity(productoProcesado);
+        }).toList());
 
     }
 

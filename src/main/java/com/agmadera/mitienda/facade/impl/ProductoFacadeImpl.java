@@ -13,13 +13,13 @@ import com.agmadera.mitienda.models.response.ProductoTecResponse;
 import com.agmadera.mitienda.populator.ProductoPopulator;
 import com.agmadera.mitienda.services.ProductoService;
 import com.agmadera.mitienda.strategy.PrecioStrategy;
-import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;

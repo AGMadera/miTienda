@@ -2,7 +2,9 @@ package com.agmadera.mitienda.facade.impl;
 
 import com.agmadera.mitienda.entities.ProductoEntity;
 import com.agmadera.mitienda.exceptions.ProductoNoEncontradoException;
+import com.agmadera.mitienda.exceptions.ProductoValidacionException;
 import com.agmadera.mitienda.exceptions.StockInsuficienteException;
+import com.agmadera.mitienda.exceptions.mensajes.ProductoMensajesError;
 import com.agmadera.mitienda.facade.ProductoFacade;
 import com.agmadera.mitienda.helpers.CSVCargaMasivaHelper;
 import com.agmadera.mitienda.models.CompraVentaDTO;
@@ -25,7 +27,6 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.util.Date;
 import java.util.List;
-import java.util.Optional;
 
 @Component
 public class ProductoFacadeImpl implements ProductoFacade {
@@ -51,6 +52,7 @@ public class ProductoFacadeImpl implements ProductoFacade {
 
     @Override
     @Transactional
+    @CacheEvict(value = "producto", allEntries = true)
     public ProductoDTO guardarProducto(ProductoDTO dto) {
         if(dto.getId() != null){
             logger.info(LOGGER_ACTUALIZANDO_PRODUCTO,dto.getId());
@@ -65,6 +67,7 @@ public class ProductoFacadeImpl implements ProductoFacade {
         //TODO
         if (!CSVCargaMasivaHelper.hasCSVFormat(archivo)){
             //TODO archivo no cumple el formato
+            throw new IllegalArgumentException("Formato no valido");
         }
 
         try {
@@ -77,6 +80,7 @@ public class ProductoFacadeImpl implements ProductoFacade {
 
     @Override
     @Transactional
+    @CacheEvict(value = "producto", allEntries = true)
     public void cargaMasivaProducto(List<ProductoDTO> dtoList) {
 
         //dtoList.forEach(this::crearNuevoProductoConStock);
@@ -91,11 +95,16 @@ public class ProductoFacadeImpl implements ProductoFacade {
     }
 
     @Override
-    public ProductoDTO buscarId(Long id) {
-        logger.info(LOGGER_BUSCANDO_NOMBRE,id);
-        ProductoEntity productoEntityFind = service.buscarId(id).orElseThrow(() -> new ProductoNoEncontradoException(MENSAJE_EXCEPTION_NO_ENCONTRADO+id));
+    public ProductoDTO buscarId(Long id){
+        try{
+            logger.info(LOGGER_BUSCANDO_NOMBRE,id);
+            ProductoEntity productoEntityFind = service.buscarId(id);
 
-        return populator.entity2Dto(productoEntityFind);
+            return populator.entity2Dto(productoEntityFind);
+        }catch (ProductoNoEncontradoException e){
+           logger.error(ProductoMensajesError.PRODUCTO_NO_ENCONTRADO);
+           throw e;
+        }
     }
 
     @Override
@@ -122,48 +131,54 @@ public class ProductoFacadeImpl implements ProductoFacade {
     @Override
     @Transactional
     public ProductoDTO actualizarProducto(ProductoDTO dto) {
-        logger.info(LOGGER_ACTUALIZANDO_PRODUCTO,dto.getId());
-        //Se busca un productoDto en la base de datos si no  esta lanza una excepcion
-        ProductoEntity productoEntityDb = service.buscarId(dto.getId()).orElseThrow(() -> new ProductoNoEncontradoException(MENSAJE_EXCEPTION_NO_ENCONTRADO+dto.getId())); //Se recupera de la DB
+        try {
+            logger.info(LOGGER_ACTUALIZANDO_PRODUCTO,dto.getId());
+            //Se busca un productoDto en la base de datos si no  esta lanza una excepcion
+            ProductoEntity productoEntityDb = service.buscarId(dto.getId()); //Se recupera de la DB
 
-        //Se convierte a DTODb
-        ProductoDTO productoDTODb = populator.entity2Dto(productoEntityDb);
+            //Se convierte a DTODb
+            ProductoDTO productoDTODb = populator.entity2Dto(productoEntityDb);
 
-        //Se verifica que el historialStock no sea vacio o nulo
-        if(dto.getHistorialStockDTOS() != null && !dto.getHistorialStockDTOS().isEmpty()){
-            //Si es diferente de nulo o diferente de vacio
-            //Se agrega el nuevo historialStock
-            productoDTODb.getHistorialStockDTOS().add(dto.getHistorialStockDTOS().get(0));
-        }else {
-            //Si es nulo o vacio
-            logger.info(LOGGER_ACTUALIZANDO_COMPATIBLES_PRODUCTO,dto.getId());
-            //Se agregan los compatibles
+            //Se verifica que el historialStock no sea vacio o nulo
+            if(dto.getHistorialStockDTOS() != null && !dto.getHistorialStockDTOS().isEmpty()){
+                //Si es diferente de nulo o diferente de vacio
+                //Se agrega el nuevo historialStock
+                productoDTODb.getHistorialStockDTOS().add(dto.getHistorialStockDTOS().get(0));
+            }else {
+                //Si es nulo o vacio
+                logger.info(LOGGER_ACTUALIZANDO_COMPATIBLES_PRODUCTO,dto.getId());
+                //Se agregan los compatibles
+                //Se manda llamar metodo que hace la funcion de agregar compatibles
+                agregarCompatibles(productoDTODb,dto);
+                ProductoEntity productoEntity = populator.dto2Entity(productoDTODb);
+
+                //Se retorna el productoDto
+                return populator.entity2Dto(service.guardar(productoEntity));
+            }
+
             //Se manda llamar metodo que hace la funcion de agregar compatibles
             agregarCompatibles(productoDTODb,dto);
-            ProductoEntity productoEntity = populator.dto2Entity(productoDTODb);
 
-            //Se retorna el productoDto
+            float costo = productoDTODb.getCostoReferencia();
+
+            if(!dto.isUsarCostoReferencia()){
+               costo = dto.getCompraVentaDTOS().get(0).getCosto();
+               productoDTODb.setCostoReferencia(costo);
+            }
+
+            configurarPrecios(productoDTODb,costo, dto.getCompraVentaDTOS().get(0));
+            productoDTODb.getCompraVentaDTOS().add(dto.getCompraVentaDTOS().get(0));
+
+            productoDTODb.getStockDTO().setUnidadesExistencia(calcularStockExistencia(dto,productoDTODb));
+
+            ProductoEntity productoEntity= populator.dto2Entity(productoDTODb);
+            logger.info(LOGGER_ACTUALIZANDO_FIN_PRODUCTO,productoEntity.getId());
             return populator.entity2Dto(service.guardar(productoEntity));
+
+        }catch (ProductoNoEncontradoException ex){
+            logger.error("Error al actualizar el producto"+ex);
+            throw new ProductoValidacionException(ProductoMensajesError.PRODUCTO_NO_ENCONTRADO+ex);
         }
-
-        //Se manda llamar metodo que hace la funcion de agregar compatibles
-        agregarCompatibles(productoDTODb,dto);
-
-        float costo = productoDTODb.getCostoReferencia();
-
-        if(!dto.isUsarCostoReferencia()){
-           costo = dto.getCompraVentaDTOS().get(0).getCosto();
-           productoDTODb.setCostoReferencia(costo);
-        }
-
-        configurarPrecios(productoDTODb,costo, dto.getCompraVentaDTOS().get(0));
-        productoDTODb.getCompraVentaDTOS().add(dto.getCompraVentaDTOS().get(0));
-
-        productoDTODb.getStockDTO().setUnidadesExistencia(calcularStockExistencia(dto,productoDTODb));
-
-        ProductoEntity productoEntity= populator.dto2Entity(productoDTODb);
-        logger.info(LOGGER_ACTUALIZANDO_FIN_PRODUCTO,productoEntity.getId());
-        return populator.entity2Dto(service.guardar(productoEntity));
     }
 
     @Override
@@ -185,15 +200,9 @@ public class ProductoFacadeImpl implements ProductoFacade {
             logger.error(LOGGER_STOCK_EN_CERO);
             throw new StockInsuficienteException();
         }
-        //Se busca la entityDto en Optional<EntityDB> por id
-        Optional<ProductoEntity> productoEntityOptional = service.buscarId(producto.getId());
-        //Si el optional esta vacio lanza error
-        if (productoEntityOptional.isEmpty()){
-            logger.error(LOGGER_PRODUCTO_NO_ENCONTRADO,producto.getId());
-            throw new ProductoNoEncontradoException(MENSAJE_EXCEPTION_NO_ENCONTRADO+producto.getId());
-        }
-        //Se obtiene la Entity del optional
-        ProductoEntity productoDb = productoEntityOptional.get();
+
+        //Se obtiene la Entity del dto
+        ProductoEntity productoDb = service.buscarId(producto.getId());
         /*
         //Se agregan las nuevas unidades vendidas y las unidades en existencia
         //Unidades vendidas hace referencia a las unidades que se han vendido de manera historica del producto no a las unidades a vender
@@ -209,11 +218,13 @@ public class ProductoFacadeImpl implements ProductoFacade {
     @Override
     @Transactional
     public ProductoDTO actualizarProducto(ProductoDTO dto, Long id) {
-        Optional<ProductoEntity> productoEntityOptional = service.buscarId(id);
-        if(productoEntityOptional.isEmpty()){
-            throw new ProductoNoEncontradoException(MENSAJE_EXCEPTION_NO_ENCONTRADO +id);
+        try{
+            service.buscarId(id);
+            return actualizarProducto(dto);
+        }catch (ProductoNoEncontradoException ex){
+            logger.error("Error al actualizar el producto "+ex);
+            throw new ProductoValidacionException(ProductoMensajesError.PRODUCTO_NO_ENCONTRADO+ex);
         }
-        return actualizarProducto(dto);
     }
 
     @Override
@@ -277,13 +288,12 @@ public class ProductoFacadeImpl implements ProductoFacade {
     }
 
     private void agregarCompatibles(ProductoDTO productoDTODb, ProductoDTO dto){
-        if(dto.getCompatibles()==null||dto.getCompatibles().isEmpty()){
+        if(dto.getCompatibles()!=null||!dto.getCompatibles().isEmpty()){
             //Si lo son se lanza excepcion
-            throw new IllegalArgumentException("Debe contener al menos un valor en compatible");
-        }else {
+            //throw new IllegalArgumentException("Debe contener al menos un valor en compatible");
+            //productoDTODb.getCompatibles().clear();
             productoDTODb.getCompatibles().addAll(dto.getCompatibles());
         }
-
     }
 
 }

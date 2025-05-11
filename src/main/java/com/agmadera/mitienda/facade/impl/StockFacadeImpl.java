@@ -1,6 +1,5 @@
 package com.agmadera.mitienda.facade.impl;
 
-import com.agmadera.mitienda.entities.ProductoEntity;
 import com.agmadera.mitienda.facade.StockFacade;
 import com.agmadera.mitienda.models.ProductoDTO;
 import com.agmadera.mitienda.populator.ProductoPopulator;
@@ -20,7 +19,7 @@ public class StockFacadeImpl implements StockFacade {
     @Override
     public ProductoDTO actualizarStockProducto(ProductoDTO dto, Long id) {
 
-        ProductoEntity productoEntity = productoService.buscarId(id).get();
+        //ProductoEntity productoEntity = productoService.buscarId(id).get();
 /*
         int unidadesVendidasDTO = dto.getStockDTO().getUnidadesVendidas();
         int unidadesSolicitadasDTO = dto.getStockDTO().getUnidadesSolicitadas();

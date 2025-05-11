@@ -2,13 +2,13 @@ package com.agmadera.mitienda.services.impl;
 
 import com.agmadera.mitienda.entities.ProductoEntity;
 import com.agmadera.mitienda.exceptions.ProductoNoEncontradoException;
+import com.agmadera.mitienda.exceptions.ProductoValidacionException;
 import com.agmadera.mitienda.exceptions.mensajes.ProductoMensajesError;
 import com.agmadera.mitienda.repository.ProductoRepository;
 import com.agmadera.mitienda.services.ProductoService;
 import jakarta.validation.Valid;
-import lombok.AllArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
@@ -22,12 +22,9 @@ import java.util.Objects;
 
 @Service
 @Transactional
-@AllArgsConstructor
+@Slf4j
+@RequiredArgsConstructor
 public class ProductoServiceImpl implements ProductoService {
-
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(ProductoServiceImpl.class);
-
 
     private final ProductoRepository repository;
 
@@ -36,7 +33,7 @@ public class ProductoServiceImpl implements ProductoService {
     @Transactional
     @CacheEvict(value = "productos", allEntries = true)
     public ProductoEntity guardar(@Valid ProductoEntity producto) {
-        LOGGER.debug("Guardando producto");
+        log.debug("Guardando producto");
         return repository.save(producto);
 
     }
@@ -48,7 +45,7 @@ public class ProductoServiceImpl implements ProductoService {
         return repository.findByNombreContains(modelo)
                 .orElseThrow(() -> {
                     String errorMsg = String.format(ProductoMensajesError.PRODUCTO_NO_ENCONTRADO, "modelo", modelo);
-                    LOGGER.error(errorMsg);
+                    log.error(errorMsg);
                     return new ProductoNoEncontradoException(errorMsg);
                 });
     }
@@ -59,7 +56,7 @@ public class ProductoServiceImpl implements ProductoService {
     public ProductoEntity buscarId( long id) {
         return repository.findById(id).orElseThrow(() -> {
             String errorMsg = String.format(ProductoMensajesError.PRODUCTO_NO_ENCONTRADO, "id", id);
-            LOGGER.error(errorMsg);
+            log.error(errorMsg);
             throw new ProductoNoEncontradoException(errorMsg);
         });
 
@@ -71,8 +68,8 @@ public class ProductoServiceImpl implements ProductoService {
     public List<ProductoEntity> cargaMasiva(@Valid List<ProductoEntity> productoEntityList) {
         Objects.requireNonNull(productoEntityList, ProductoMensajesError.PRODUCTOS_NULOS);
         if (productoEntityList.isEmpty()) {
-            LOGGER.warn(ProductoMensajesError.PRODUCTOS_NULOS);
-            throw new IllegalArgumentException(ProductoMensajesError.PRODUCTOS_NULOS);
+            log.warn(ProductoMensajesError.PRODUCTOS_NULOS);
+            throw new ProductoValidacionException(ProductoMensajesError.PRODUCTOS_NULOS);
         }
         return repository.saveAll(productoEntityList);
     }

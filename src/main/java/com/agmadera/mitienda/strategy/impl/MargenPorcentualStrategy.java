@@ -19,15 +19,19 @@ public class MargenPorcentualStrategy implements PrecioStrategy {
     }
     @Override
     public float calcularPrecioPG(float costo) {
-        return generarPrecio(costo, margenPG);
+        return redondearArriba(generarPrecio(costo, margenPG));
     }
 
     @Override
     public float calcularPrecioTecnico(float costo) {
-        return generarPrecio(costo,margenTecnico);
+        return redondearArriba(generarPrecio(costo,margenTecnico));
     }
 
     private float generarPrecio(float costo, float porcentajeGanacia){
         return costo * (1 + porcentajeGanacia);
+    }
+
+    private float redondearArriba(float valor) {
+        return (float) (Math.ceil(valor /10)* 10);
     }
 }

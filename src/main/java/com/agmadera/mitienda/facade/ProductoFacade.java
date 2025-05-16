@@ -3,13 +3,12 @@ package com.agmadera.mitienda.facade;
 import com.agmadera.mitienda.models.ProductoDTO;
 import com.agmadera.mitienda.models.response.ProductoPGResponse;
 import com.agmadera.mitienda.models.response.ProductoTecResponse;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
 public interface ProductoFacade {
     ProductoDTO guardarProducto(ProductoDTO dto);
-    void cargaMasivaProducto(MultipartFile archivo);
+    //void cargaMasivaProducto(MultipartFile archivo);
     void cargaMasivaProducto(List<ProductoDTO> dtoList);
 
     ProductoDTO buscarId(Long id);
@@ -31,5 +30,5 @@ public interface ProductoFacade {
 
     List<ProductoTecResponse> mostrarTodosTec();
 
-    List<ProductoDTO> actualizarPrecios();
+    List<ProductoDTO> actualizarPreciosTodos();
 }

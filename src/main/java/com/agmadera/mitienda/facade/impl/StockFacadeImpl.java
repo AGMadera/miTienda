@@ -2,42 +2,67 @@ package com.agmadera.mitienda.facade.impl;
 
 import com.agmadera.mitienda.facade.StockFacade;
 import com.agmadera.mitienda.models.ProductoDTO;
+import com.agmadera.mitienda.models.StockDTO;
 import com.agmadera.mitienda.populator.ProductoPopulator;
-import com.agmadera.mitienda.services.ProductoService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 @Component
+@Slf4j
+@RequiredArgsConstructor
 public class StockFacadeImpl implements StockFacade {
-
-    @Autowired
-    private ProductoService productoService;
-
-    @Autowired
     private ProductoPopulator populator;
 
+
     @Override
-    public ProductoDTO actualizarStockProducto(ProductoDTO dto, Long id) {
+    public int calcularStockExistencia(ProductoDTO dto, ProductoDTO productoDtoExistente) {
+        int unidadesIngresadas;
+        int unidadesExistencia;
 
-        //ProductoEntity productoEntity = productoService.buscarId(id).get();
-/*
-        int unidadesVendidasDTO = dto.getStockDTO().getUnidadesVendidas();
-        int unidadesSolicitadasDTO = dto.getStockDTO().getUnidadesSolicitadas();
-
-        if(unidadesSolicitadasDTO > 0){
-            //productoEntity.getStock().setUnidadesSolicitadas(unidadesSolicitadasDTO);
+        if(productoDtoExistente != null){
+            unidadesIngresadas = dto.getHistorialStockDTOS().get(0).getUnidadesIngresadas();
+            unidadesExistencia = productoDtoExistente.getStockDTO().getUnidadesExistencia();
+            productoDtoExistente.getStockDTO().setUnidadesExistencia(unidadesExistencia + unidadesIngresadas);
+        }else{
+            unidadesIngresadas = dto.getHistorialStockDTOS().get(dto.getHistorialStockDTOS().size() - 1).getUnidadesIngresadas();
+            unidadesExistencia = dto.getStockDTO().getUnidadesExistencia();
         }
 
-        if(unidadesVendidasDTO > 0){
-            productoEntity.getStockEntity().setUnidadesVendidas(unidadesVendidasDTO);
-            //int unidadesExistencia = productoEntity.getStock().getUnidadesSolicitadas() - unidadesVendidasDTO;
-            //productoEntity.getStock().setUnidadesExistencia(unidadesExistencia);
-        }
-
-        ProductoEntity productoGuardado = productoService.guardar(productoEntity);
-        ProductoDTO productoDTOguardado = populator.entity2Dto(productoGuardado);
-
-        return productoDTOguardado;*/
-        return null;
+        return unidadesIngresadas + unidadesExistencia;
     }
+    public void inicializarStock(ProductoDTO dto, ProductoDTO productoExistente) {
+        StockDTO stockDTO = new StockDTO();
+        dto.setStockDTO(stockDTO);
+        dto.getStockDTO().setUnidadesExistencia(calcularStockExistencia(dto, productoExistente));
+    }
+
+    @Transactional
+    public ProductoDTO actualizarStockVenta(ProductoDTO dto) {
+  /*      log.info(LOGGER_ACTUALIZANDO_STOCK,dto.getId());
+        //Se convierte dto a entityDto
+        ProductoEntity producto = populator.dto2Entity(dto);
+        //si hay las unidades de la entityDto son menores a 0
+        if(producto.getStockEntity().getUnidadesExistencia() < 0){
+            log.error(LOGGER_STOCK_EN_CERO);
+            throw new StockInsuficienteException();
+        }
+
+        //Se obtiene la Entity del dto
+        ProductoEntity productoDb = service.buscarId(producto.getId());
+
+        //Se agregan las nuevas unidades vendidas y las unidades en existencia
+        //Unidades vendidas hace referencia a las unidades que se han vendido de manera historica del producto no a las unidades a vender
+        //Esa validacion se hace en VentaFacadeImpl
+
+        //productoDb.getStockEntity().setUnidadesVendidas(producto.getStockEntity().getUnidadesVendidas());
+        //productoDb.getStockEntity().setUnidadesExistencia(producto.getStockEntity().getUnidadesExistencia());
+
+        //return populator.entity2Dto(service.guardar(productoDb));
+        */
+        return null;
+
+    }
+
 }

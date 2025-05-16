@@ -2,11 +2,8 @@ package com.agmadera.mitienda.controller;
 
 
 import com.agmadera.mitienda.facade.StockFacade;
-import com.agmadera.mitienda.models.ProductoDTO;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 public class StockController {
@@ -25,9 +22,9 @@ public class StockController {
         return null;
     }
      */
-    @PutMapping("/stock/actualizar/{id}")
+    /*@PutMapping("/stock/actualizar/{id}")
     ResponseEntity<?> actualizarProducto(@RequestBody ProductoDTO productoDTO, @PathVariable Long id ){
         ProductoDTO actualizarStockProducto = stockFacade.actualizarStockProducto(productoDTO, id);
         return ResponseEntity.status(HttpStatus.CREATED).body(actualizarStockProducto);
-    }
+    }*/
 }

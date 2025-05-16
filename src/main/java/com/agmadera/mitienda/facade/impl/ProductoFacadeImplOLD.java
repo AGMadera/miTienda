@@ -19,54 +19,62 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 
-@Component
+//@Component
 @RequiredArgsConstructor
 @Slf4j
 @Transactional
-public class ProductoFacadeImpl implements ProductoFacade {
+public class ProductoFacadeImplOLD implements ProductoFacade {
 
-    // -------------------- CONSTANTES --------------------
+
+    private static final String LOGGER_BUSCANDO_NOMBRE = "Buscando con nombre: {}";
+    private static final String LOGGER_ACTUALIZANDO_PRODUCTO = "Se inicia actualizacion de producto con id: {}";
+    private static final String LOGGER_ACTUALIZANDO_FIN_PRODUCTO = "Se finaliza actualizacion de producto con id: {}";
+    private static final String LOGGER_ACTUALIZANDO_COMPATIBLES_PRODUCTO = "Actualizando unicamente compatibles del producto con ID: {}";
+    private static final String LOGGER_STOCK_EN_CERO = "stock en 0 del producto: {}";
+    private static final String LOGGER_ACTUALIZANDO_STOCK = "Actualizando stock del producto con ID: {}";
+    private static final String LOGGER_ERROR_ACTUALIZAR_PRODUCTO ="Error al actualizar el producto";
+    private static final String CACHE_NOMBRE_PRODUCTO = "producto";
     private static final String LOGGER_BUSCANDO = "Buscando producto {}: {}";
-    private static final String LOGGER_ACTUALIZACION_INICIO = "Iniciando actualización producto ID: {}";
-    private static final String LOGGER_ACTUALIZACION_FIN = "Finalizada actualización producto ID: {}";
-    private static final String LOGGER_STOCK_INSUFICIENTE = "Stock insuficiente para producto ID: {}";
-    private static final String CACHE_PRODUCTOS = "productos";
 
-    // -------------------- DEPENDENCIAS --------------------
-    private final ProductoService service;
+    //-----------------Dependencias-----------------------
+    private final  ProductoService service;
     private final ProductoPopulator populator;
     private final PrecioFacade precioFacade;
     private final ProductoHelper productoHelper;
     private final ProductoActualizacionBuilder actualizacionBuilder;
 
-    // -------------------- OPERACIONES CRUD --------------------
+    //----------------------------CRUD----------------------------------------------
     @Override
     @Transactional
-    @CacheEvict(value = CACHE_PRODUCTOS, allEntries = true)
+    @CacheEvict(value = CACHE_NOMBRE_PRODUCTO, allEntries = true)
     public ProductoDTO guardarProducto(@Valid ProductoDTO dto) {
         Objects.requireNonNull(dto, ProductoMensajesError.PRODUCTO_NULO);
-
-        return dto.getId() != null
-                ? actualizarProducto(dto)
-                : crearNuevoProducto(dto);
+        if(dto.getId() != null){
+            log.info(LOGGER_ACTUALIZANDO_PRODUCTO,dto.getId());
+            return actualizarProducto(dto);
+        }
+        ProductoDTO productoDTONuevo = productoHelper.inicializarProducto(dto);
+        return saveProduct(productoDTONuevo);
     }
 
     @Override
     @Transactional
     public ProductoDTO actualizarProducto(@Valid ProductoDTO dto) {
         try {
-            log.info(LOGGER_ACTUALIZACION_INICIO, dto.getId());
-            ProductoDTO productoActualizado = procesarActualizacion(dto);
-            log.info(LOGGER_ACTUALIZACION_FIN, dto.getId());
-            return productoActualizado;
-        } catch (ProductoNoEncontradoException ex) {
+            log.info(LOGGER_ACTUALIZANDO_PRODUCTO,dto.getId());
+            ProductoEntity productoEntityDb = service.buscarId(dto.getId());
+            ProductoDTO productoDTODb = populator.entity2Dto(productoEntityDb);
+            ProductoDTO productoActualizado = actualizacionBuilder.determinarTipoActualizacion(dto).buildUpdate(dto, productoDTODb);
+            log.info(LOGGER_ACTUALIZANDO_FIN_PRODUCTO, dto.getId());
+
+            return saveProduct(productoActualizado);
+        }catch (ProductoNoEncontradoException ex){
             log.error(ProductoMensajesError.PRODUCTO_NO_ENCONTRADO);
             throw new ProductoValidacionException(ProductoMensajesError.PRODUCTO_NO_ENCONTRADO);
         }
@@ -75,94 +83,86 @@ public class ProductoFacadeImpl implements ProductoFacade {
     @Override
     @Transactional
     public ProductoDTO actualizarProducto(ProductoDTO dto, Long id) {
-        try {
+        try{
             service.buscarId(id);
             return actualizarProducto(dto);
-        } catch (ProductoNoEncontradoException ex) {
-            log.error("Error al actualizar producto con ID: {}", id);
+        }catch (ProductoNoEncontradoException ex){
+            log.error(LOGGER_ERROR_ACTUALIZAR_PRODUCTO);
             throw new ProductoValidacionException(ProductoMensajesError.PRODUCTO_NO_ENCONTRADO);
         }
     }
 
-    // -------------------- OPERACIONES MASIVAS --------------------
+    //------------------------------Opereciones Masivas
     @Override
     @Transactional
-    @CacheEvict(value = CACHE_PRODUCTOS, allEntries = true)
-    public void cargaMasivaProducto(@Valid List<ProductoDTO> dtos) {
-        Objects.requireNonNull(dtos, ProductoMensajesError.PRODUCTOS_NULOS);
-
-        List<ProductoEntity> entidades = dtos.stream()
+    @CacheEvict(value = CACHE_NOMBRE_PRODUCTO, allEntries = true)
+    public void cargaMasivaProducto(@Valid List<ProductoDTO> dtoList) {
+        Objects.requireNonNull(dtoList, ProductoMensajesError.PRODUCTOS_NULOS);
+        List<ProductoEntity> entidades = dtoList.stream()
                 .map(productoHelper::inicializarProducto)
                 .map(populator::dto2Entity)
                 .toList();
-
         service.cargaMasiva(entidades);
-    }
 
-    // -------------------- CONSULTAS --------------------
+    }
+    //---------------------------------Busqueda---------------------------------
     @Override
     @Transactional(readOnly = true)
-    public ProductoDTO buscarId(Long id) {
-        try {
-            log.info(LOGGER_BUSCANDO, "por ID", id);
+    public ProductoDTO buscarId(Long id){
+        try{
+            log.info(LOGGER_BUSCANDO, "por ID",id);
             return populator.entity2Dto(service.buscarId(id));
-        } catch (ProductoNoEncontradoException e) {
-            log.error(ProductoMensajesError.PRODUCTO_NO_ENCONTRADO);
-            throw new ProductoNoEncontradoException(ProductoMensajesError.PRODUCTO_NO_ENCONTRADO);
+        }catch (ProductoNoEncontradoException e){
+           log.error(ProductoMensajesError.PRODUCTO_NO_ENCONTRADO);
+           throw new ProductoNoEncontradoException(ProductoMensajesError.PRODUCTO_NO_ENCONTRADO);
         }
     }
-
     @Override
     @Transactional(readOnly = true)
     public List<ProductoDTO> buscarNombre(String nombre) {
-        log.info(LOGGER_BUSCANDO, "por nombre", nombre);
+        log.info(LOGGER_BUSCANDO_NOMBRE,nombre);
         return populator.listEntity2dto(service.buscarNombre(nombre));
     }
-
     @Override
     @Transactional(readOnly = true)
     public List<ProductoDTO> mostrarTodos() {
-        return populator.listEntity2dto(service.mostrarTodos());
+        return populator.listEntity2dto( service.mostrarTodos());
     }
-
-    // -------------------- CONSULTAS ESPECIALIZADAS --------------------
     @Override
-    @CacheEvict(value = CACHE_PRODUCTOS, allEntries = true)
+    @CacheEvict(value = CACHE_NOMBRE_PRODUCTO, allEntries = true)
     @Transactional(readOnly = true)
     public List<ProductoTecResponse> buscarNombreTec(String nombre) {
-        log.info(LOGGER_BUSCANDO, "técnico por nombre", nombre);
+        log.info(LOGGER_BUSCANDO,"prodcuto para tecnico por nombre",nombre);
         return populator.listEntity2ProductoTecResponses(service.buscarNombre(nombre));
     }
-
     @Override
-    @CacheEvict(value = CACHE_PRODUCTOS, allEntries = true)
+    @CacheEvict(value = CACHE_NOMBRE_PRODUCTO, allEntries = true)
     @Transactional(readOnly = true)
     public List<ProductoPGResponse> buscarNombrePG(String nombre) {
-        log.info(LOGGER_BUSCANDO, "PG por nombre", nombre);
-        return populator.listEntity2ProductoPGResponses(service.buscarNombre(nombre));
+        log.info(LOGGER_BUSCANDO,"por nombre: ",nombre);
+        List<ProductoEntity> productoEntityList = service.buscarNombre(nombre);
+        return populator.listEntity2ProductoPGResponses(productoEntityList);
     }
-
     @Override
     @Transactional(readOnly = true)
     public List<ProductoTecResponse> mostrarTodosTec() {
-        return populator.listEntity2ProductoTecResponses(service.mostrarTodos());
+        List<ProductoEntity> productoEntities = service.mostrarTodos();
+
+        return populator.listEntity2ProductoTecResponses(productoEntities);
     }
 
-    // -------------------- OPERACIONES ESPECIALES --------------------
+    //--------------------Operaciones Especiales
     @Override
     @Transactional
     public ProductoDTO actualizarStockVenta(ProductoDTO dto) {
-        log.info("Actualizando stock producto ID: {}", dto.getId());
-
+        log.info(LOGGER_ACTUALIZANDO_STOCK,dto.getId());
         ProductoEntity producto = populator.dto2Entity(dto);
         validarStock(producto);
-
         ProductoEntity productoDb = service.buscarId(producto.getId());
-        actualizarStock(productoDb, producto);
-
+        actualizarStock(productoDb,producto);
         return populator.entity2Dto(service.guardar(productoDb));
-    }
 
+    }
     @Override
     @Transactional
     public List<ProductoDTO> actualizarPreciosTodos() {
@@ -175,39 +175,12 @@ public class ProductoFacadeImpl implements ProductoFacade {
 
         List<ProductoEntity> entidades = populator.listDto2entities(productos);
         return populator.listEntity2dto(service.cargaMasiva(entidades));
-    }
 
-    // -------------------- MÉTODOS PRIVADOS --------------------
-    private ProductoDTO crearNuevoProducto(ProductoDTO dto) {
-        ProductoDTO productoInicializado = productoHelper.inicializarProducto(dto);
-        return guardarYConvertir(productoInicializado);
     }
-
-    private ProductoDTO procesarActualizacion(ProductoDTO dto) {
-        ProductoEntity entityDb = service.buscarId(dto.getId());
-        ProductoDTO dbDto = populator.entity2Dto(entityDb);
-        ProductoDTO productoActualizado = actualizacionBuilder
-                .determinarTipoActualizacion(dto)
-                .buildUpdate(dto, dbDto);
-        return guardarYConvertir(productoActualizado);
-    }
-
-    private ProductoDTO guardarYConvertir(ProductoDTO dto) {
+    //-------------------Metodos Privados--------------
+    private ProductoDTO saveProduct(ProductoDTO dto) {
         return populator.entity2Dto(service.guardar(populator.dto2Entity(dto)));
     }
-
-    private void validarStock(ProductoEntity producto) {
-        if (producto.getStockEntity().getUnidadesExistencia() < 0) {
-            log.error(LOGGER_STOCK_INSUFICIENTE, producto.getId());
-            throw new StockInsuficienteException();
-        }
-    }
-
-    private void actualizarStock(ProductoEntity destino, ProductoEntity origen) {
-        destino.getStockEntity().setUnidadesVendidas(origen.getStockEntity().getUnidadesVendidas());
-        destino.getStockEntity().setUnidadesExistencia(origen.getStockEntity().getUnidadesExistencia());
-    }
-
     private CompraVentaDTO crearNuevoPrecio(ProductoDTO producto) {
         CompraVentaDTO nuevoPrecio = new CompraVentaDTO();
         precioFacade.configurarPreciosProducto(producto, producto.getCostoReferencia(), nuevoPrecio);
@@ -215,4 +188,15 @@ public class ProductoFacadeImpl implements ProductoFacade {
         nuevoPrecio.setFecha(new Date());
         return nuevoPrecio;
     }
+    private void validarStock(ProductoEntity producto) {
+        if (producto.getStockEntity().getUnidadesExistencia() < 0) {
+            log.error(LOGGER_STOCK_EN_CERO, producto.getId());
+            throw new StockInsuficienteException();
+        }
+    }
+    private void actualizarStock(ProductoEntity destino, ProductoEntity origen) {
+        destino.getStockEntity().setUnidadesVendidas(origen.getStockEntity().getUnidadesVendidas());
+        destino.getStockEntity().setUnidadesExistencia(origen.getStockEntity().getUnidadesExistencia());
+    }
+
 }

@@ -11,8 +11,6 @@ public class ProductoMensajesError {
     static final String PRECIOS_INVALIDOS = "Validación fallida: Precios inválidos - PG: {}, Técnico: {}";
 
 
-
-
     // Validación de campos
     public static final String NOMBRE_REQUERIDO = "El nombre del producto es requerido";
     public static final String MARCA_REQUERIDA = "La marca del producto es requerida";

@@ -46,9 +46,7 @@ public class ProductoController {
 
     @GetMapping("/buscar/{nombre}")
     ResponseEntity<?> buscarNombre(@PathVariable("nombre") String nombre){
-        //System.out.println("entro"+nombre);
         List<ProductoDTO> productoDTOS = productoFacade.buscarNombre(nombre);
-
         return ResponseEntity.ok(productoDTOS);
     }
 
@@ -60,15 +58,15 @@ public class ProductoController {
 
     }
 
-    /*
+
     //Se comenta codigo para evitar actualizaciones incorrectas
     @GetMapping("/actualiazar/precios")
     ResponseEntity<?> actualizarPrecios(){
-        List<ProductoDTO> productosDTOS = productoFacade.actualizarPrecios();
+        List<ProductoDTO> productosDTOS = productoFacade.actualizarPreciosTodos();
         return ResponseEntity.ok(productosDTOS);
 
     }
-    */
+
 
 
 }

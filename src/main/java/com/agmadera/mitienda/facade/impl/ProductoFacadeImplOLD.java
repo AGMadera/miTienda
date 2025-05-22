@@ -152,7 +152,7 @@ public class ProductoFacadeImplOLD implements ProductoFacade {
     }
 
     //--------------------Operaciones Especiales
-    @Override
+    /*@Override
     @Transactional
     public ProductoDTO actualizarStockVenta(ProductoDTO dto) {
         log.info(LOGGER_ACTUALIZANDO_STOCK,dto.getId());
@@ -162,7 +162,7 @@ public class ProductoFacadeImplOLD implements ProductoFacade {
         actualizarStock(productoDb,producto);
         return populator.entity2Dto(service.guardar(productoDb));
 
-    }
+    }*/
     @Override
     @Transactional
     public List<ProductoDTO> actualizarPreciosTodos() {

@@ -6,164 +6,179 @@ import com.agmadera.mitienda.entities.GarantiaReembolso;
 import com.agmadera.mitienda.entities.GarantiaVale;
 import com.agmadera.mitienda.exceptions.GarantiaNoValidaException;
 import com.agmadera.mitienda.exceptions.VentaNoEncontradaException;
-import com.agmadera.mitienda.facade.GananciaFacade;
-import com.agmadera.mitienda.facade.GarantiaFacade;
-import com.agmadera.mitienda.facade.ProductoFacade;
-import com.agmadera.mitienda.facade.VentaFacade;
+import com.agmadera.mitienda.facade.*;
 import com.agmadera.mitienda.models.*;
 import com.agmadera.mitienda.models.response.ReembolsoResponse;
 import com.agmadera.mitienda.models.response.ValeResponse;
 import com.agmadera.mitienda.populator.GarantiaPopulator;
 import com.agmadera.mitienda.services.GarantiaReembolsoService;
 import com.agmadera.mitienda.services.GarantiaValeService;
-import jakarta.transaction.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
-import java.util.List;
+import java.util.Optional;
 
+@Slf4j
 @Component
+@RequiredArgsConstructor
 public class GarantiaFacadeImpl implements GarantiaFacade {
 
-    @Autowired
-    private GarantiaReembolsoService reembolsoService;
+    private static final String PRODUCTO_NO_ENCONTRADO_MSG = "Producto no encontrado en venta";
+    private static final String GARANTIA_USADA_MSG = "Garantía ya usada";
 
-    @Autowired
-    private GarantiaValeService valeService;
-
-    @Autowired
-    private VentaFacade ventaFacade;
-
-    @Autowired
-    private ProductoFacade productoFacade;
-
-    @Autowired
-    private GarantiaPopulator garantiaPopulator;
-
-    @Autowired
-    private GananciaFacade gananciaFacade;
+    private final GarantiaReembolsoService reembolsoService;
+    private final GarantiaValeService valeService;
+    private final VentaFacade ventaFacade;
+    private final ProductoFacade productoFacade;
+    private final GarantiaPopulator garantiaPopulator;
+    private final GananciaFacade gananciaFacade;
+    private final StockFacade stockFacade;
 
     @Value("${garantia.dias}")
-    private float GARANTIA_DIAS_VALIDOS;
+    private float diasGarantiaValidos;
 
     @Override
-    @Transactional
     public ReembolsoResponse guardarReembolso(GarantiaDTO reembolso) {
         validarGarantia(reembolso);
         VentaDTO ventaDTO = ventaFacade.buscarVenta(reembolso.getIdVenta());
-        float cantidadReembolso = modificarCompra(ventaDTO, reembolso.getIdProductoVenta(), reembolso.getRazonGarantia());
+
+        float cantidadReembolso = procesarReembolso(ventaDTO, reembolso);
         reembolso.setCantidadReembolso(cantidadReembolso);
+
         GarantiaReembolso garantiaReembolso = garantiaPopulator.dto2Entity(reembolso);
-        ReembolsoResponse reembolsoResponse = garantiaPopulator.entity2Response(reembolsoService.guardar(garantiaReembolso));
-        reembolsoResponse.setProducto(nombreProducto(reembolso.getIdProductoVenta()));
-        gananciaFacade.actualizarGanacia(ventaDTO, reembolso.getIdProductoVenta(), TipoGarantia.REEMBOLSO);
-        return reembolsoResponse;
+        GarantiaReembolso savedReembolso = reembolsoService.guardar(garantiaReembolso);
+
+        actualizarGanancias(ventaDTO, reembolso.getIdProductoVenta(), TipoGarantia.REEMBOLSO);
+
+        return construirReembolsoResponse(savedReembolso, reembolso.getIdProductoVenta());
     }
 
     @Override
-    @Transactional
     public ValeResponse crearVale(GarantiaDTO garantiaDTO) {
         VentaDTO ventaDTO = validarGarantia(garantiaDTO);
+        float cantidadReembolso = procesarReembolso(ventaDTO, garantiaDTO);
 
-        float cantidadReembolso = modificarCompra(ventaDTO, garantiaDTO.getIdProductoVenta(), garantiaDTO.getRazonGarantia());
+        GarantiaVale garantiaVale = crearGarantiaVale(garantiaDTO, cantidadReembolso);
+        GarantiaVale savedVale = valeService.guardar(garantiaVale);
 
-        GarantiaVale garantiaVale = garantiaPopulator.dtoVale2Entity(garantiaDTO);
-        garantiaVale.setSaldoInicial(cantidadReembolso);
-        garantiaVale.setSaldoActual(cantidadReembolso);
-        GarantiaVale garantiaValeDb = valeService.guardar(garantiaVale);
+        actualizarGanancias(ventaDTO, garantiaDTO.getIdProductoVenta(), garantiaDTO.getTipoGarantia());
 
-        garantiaVale.setFolio(garantiaVale.getIdVenta()+"-"+garantiaVale.getIdProductoVenta()+"-"+ garantiaValeDb.getId());
-        gananciaFacade.actualizarGanacia(ventaDTO, garantiaDTO.getIdProductoVenta(), garantiaDTO.getTipoGarantia());
-        return garantiaPopulator.valeEntityToResponse(valeService.guardar(garantiaValeDb));
-
+        return garantiaPopulator.valeEntityToResponse(savedVale);
     }
 
+    private VentaDTO validarGarantia(GarantiaDTO garantia) {
+        VentaDTO ventaDTO = ventaFacade.buscarVenta(garantia.getIdVenta());
 
-    private VentaDTO validarGarantia(GarantiaDTO garantiaReembolso){
+        LocalDate fechaVenta = toLocalDate(ventaDTO.getFechaVenta());
+        LocalDate fechaGarantia = toLocalDate(garantia.getFecha());
 
-        try{
-            VentaDTO ventaDTO = ventaFacade.buscarVenta(garantiaReembolso.getIdVenta());
-            Date fechaVenta = ventaDTO.getFechaVenta();
+        long diasTranscurridos = ChronoUnit.DAYS.between(fechaVenta, fechaGarantia);
 
-            long diasTranscurridos = ChronoUnit.DAYS.between(fechaVenta.toInstant().atZone(ZoneId.systemDefault()).toLocalDate(),
-                    garantiaReembolso.getFecha().toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
-            //System.out.println(diasTranscurridos);
-
-            if (diasTranscurridos <= GARANTIA_DIAS_VALIDOS){
-                //TODO LOG
-                System.out.println("DIAS transcurridos: "+diasTranscurridos);
-                return ventaDTO;
-            }
-        }catch (VentaNoEncontradaException exception){
-            throw new VentaNoEncontradaException();
+        if (diasTranscurridos > diasGarantiaValidos) {
+            log.warn("Garantía no válida. Días transcurridos: {}", diasTranscurridos);
+            throw new GarantiaNoValidaException();
         }
-        System.out.println("Llego aqui");
-        //TODO EXCEPTION
-        throw new GarantiaNoValidaException();
-        //return null;
+
+        log.debug("Garantía válida. Días transcurridos: {}", diasTranscurridos);
+        return ventaDTO;
     }
 
-    private float modificarCompra(VentaDTO ventaDTO, Long idProductoReembolso, RazonGarantia razonGarantia){
+    private float procesarReembolso(VentaDTO ventaDTO, GarantiaDTO garantiaDTO) {
+        ProductoVentaDTO productoVenta = buscarProductoEnVenta(ventaDTO, garantiaDTO.getIdProductoVenta())
+                .orElseThrow(() -> new VentaNoEncontradaException(PRODUCTO_NO_ENCONTRADO_MSG));
 
-        List<ProductoVentaDTO> productoVentaDTOSList = ventaDTO.getProductoVentaDTOS();
+        validarCantidadProducto(productoVenta);
 
-        int i = 0;
-        float precio = 0;
-        while (productoVentaDTOSList.iterator().hasNext()) {
-            if (productoVentaDTOSList.size() == i) {
-                //TODO EXCEPTION
-                throw new VentaNoEncontradaException("Producto no encontrado en venta");
-            }
-            ProductoVentaDTO productoVentaDTO = productoVentaDTOSList.get(i);
-            if (productoVentaDTO.getIdProductoRef().equals( idProductoReembolso)){
-                int cantidad = productoVentaDTO.getCantidad();
-                float total = productoVentaDTO.getTotal();
-                if(cantidad <= 0){
-                    //TODO EXCEPTION
-                    System.out.println("Cantidad menor a cero");
-                    throw new GarantiaNoValidaException("Garantia ya usada");
-                }
-                productoVentaDTO.setCantidad(cantidad - 1);
-                productoVentaDTO.setTotal(total - productoVentaDTO.getPrecio());
-                productoVentaDTO.setDescuento(productoVentaDTO.getPrecio());
-                precio = productoVentaDTO.getPrecio();
+        float precioProducto = productoVenta.getPrecio();
+        actualizarProductoVenta(productoVenta, precioProducto);
+        actualizarVenta(ventaDTO, precioProducto);
 
-                break;
-            }
-
-            i++;
+        if (garantiaDTO.getRazonGarantia() != RazonGarantia.displayMalEstado) {
+            actualizarStockProducto(garantiaDTO.getIdProductoVenta());
         }
+
+        return precioProducto;
+    }
+
+    private Optional<ProductoVentaDTO> buscarProductoEnVenta(VentaDTO ventaDTO, Long idProducto) {
+        return ventaDTO.getProductoVentaDTOS().stream()
+                .filter(p -> p.getIdProductoRef().equals(idProducto))
+                .findFirst();
+    }
+
+    private void validarCantidadProducto(ProductoVentaDTO productoVenta) {
+        if (productoVenta.getCantidad() <= 0) {
+            log.error("Cantidad inválida para producto: {}", productoVenta.getIdProductoRef());
+            throw new GarantiaNoValidaException(GARANTIA_USADA_MSG);
+        }
+    }
+
+    private void actualizarProductoVenta(ProductoVentaDTO productoVenta, float precio) {
+        productoVenta.setCantidad(productoVenta.getCantidad() - 1);
+        productoVenta.setTotal(productoVenta.getTotal() - precio);
+        productoVenta.setDescuento(precio);
+    }
+
+    private void actualizarVenta(VentaDTO ventaDTO, float precio) {
         ventaDTO.setDescuentosEnTotalGen(precio);
         ventaDTO.setTotalGenreal(ventaDTO.getTotalGenreal() - precio);
         ventaFacade.actualizarVentaGarantia(ventaDTO);
-
-
-
-        if (razonGarantia.ordinal() != RazonGarantia.displayMalEstado.ordinal()){
-            //TODO LOG
-            System.out.println("display sirve");
-            ProductoDTO productoDTO = productoFacade.buscarId(idProductoReembolso);
-            int unidadesVendidas = productoDTO.getStockDTO().getUnidadesVendidas();
-            productoDTO.getStockDTO().setUnidadesVendidas(unidadesVendidas - 1);
-            productoDTO.getStockDTO().setUnidadesExistencia(productoDTO.getStockDTO().getUnidadesExistencia() + 1);
-            HistorialStockDTO historialStockDTO = new HistorialStockDTO();
-            historialStockDTO.setUnidadesIngresadas(1);
-            historialStockDTO.setFecha( new Date());
-            productoDTO.getHistorialStockDTOS().add(historialStockDTO);
-            productoFacade.actualizarStockVenta(productoDTO);
-        }
-
-
-        return precio;
-
     }
 
-    private String nombreProducto(Long id){
-        ProductoDTO productoDTO = productoFacade.buscarId(id);
-        return productoDTO.getNombre() +" "+ productoDTO.getCalidad() + (productoDTO.isMarco()? " con marco": "");
+    private void actualizarStockProducto(Long idProducto) {
+        ProductoDTO productoDTO = productoFacade.buscarId(idProducto);
+        productoDTO.getStockDTO().setUnidadesVendidas(productoDTO.getStockDTO().getUnidadesVendidas() - 1);
+        productoDTO.getStockDTO().setUnidadesExistencia(productoDTO.getStockDTO().getUnidadesExistencia() + 1);
+
+        HistorialStockDTO historialStock = new HistorialStockDTO();
+        historialStock.setUnidadesIngresadas(1);
+        historialStock.setFecha(new Date());
+        productoDTO.getHistorialStockDTOS().add(historialStock);
+
+        stockFacade.actualizarStockVenta(productoDTO);
+    }
+
+    private GarantiaVale crearGarantiaVale(GarantiaDTO garantiaDTO, float cantidadReembolso) {
+        GarantiaVale garantiaVale = garantiaPopulator.dtoVale2Entity(garantiaDTO);
+        garantiaVale.setSaldoInicial(cantidadReembolso);
+        garantiaVale.setSaldoActual(cantidadReembolso);
+
+        GarantiaVale savedVale = valeService.guardar(garantiaVale);
+        garantiaVale.setFolio(generarFolioVale(savedVale));
+        garantiaVale.setId(savedVale.getId());
+
+        return garantiaVale;
+    }
+
+    private String generarFolioVale(GarantiaVale vale) {
+        return String.format("%d-%d-%d", vale.getIdVenta(), vale.getIdProductoVenta(), vale.getId());
+    }
+
+    private ReembolsoResponse construirReembolsoResponse(GarantiaReembolso reembolso, Long idProducto) {
+        ReembolsoResponse response = garantiaPopulator.entity2Response(reembolso);
+        response.setProducto(obtenerNombreProducto(idProducto));
+        return response;
+    }
+
+    private String obtenerNombreProducto(Long idProducto) {
+        ProductoDTO productoDTO = productoFacade.buscarId(idProducto);
+        return String.format("%s %s%s",
+                productoDTO.getNombre(),
+                productoDTO.getCalidad(),
+                productoDTO.isMarco() ? " con marco" : "");
+    }
+
+    private LocalDate toLocalDate(Date date) {
+        return date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+    }
+
+    private void actualizarGanancias(VentaDTO ventaDTO, Long idProducto, TipoGarantia tipoGarantia) {
+        gananciaFacade.actualizarGanacia(ventaDTO, idProducto, tipoGarantia);
     }
 }

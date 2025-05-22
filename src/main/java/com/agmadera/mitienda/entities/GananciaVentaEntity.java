@@ -6,25 +6,28 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import lombok.Getter;
 import lombok.Setter;
-import org.springframework.data.annotation.Version;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.Date;
 
 @Entity
-@Getter
+@Slf4j
 @Setter
-public class HistorialGarantiaVale {
+@Getter
+public class GananciaVentaEntity {
+
     @Id
-    @GeneratedValue (strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
-    private float saldo;
+
+    private Long idVenta;
+
+    private float inversion;
+
+    private float ganancia;
+
+    private float vendido;
+
     private Date fecha;
-    private Long idProductoVenta;
-
-    @Version
-    private Long version;
-
-
-    
 
 }

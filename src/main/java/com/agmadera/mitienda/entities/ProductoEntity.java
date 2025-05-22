@@ -43,11 +43,13 @@ public class ProductoEntity {
     @Valid
     @NotEmpty(message = ProductoMensajesError.COMPRA_VENTA_REQUERIDA)
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OrderBy("fecha ASC") // Esto asegura el orden en la base de datos
     @JoinColumn(name = "compatible_id", referencedColumnName = "id")
     private List<CompraVentaEntity> compraVentaEntity;
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @JoinColumn(name = "historialStock_id", referencedColumnName = "id")
+    @OrderBy("fecha ASC") // Esto asegura el orden en la base de datos
     private List<HistorialStockEntity> historialStockEntity;
 
 }

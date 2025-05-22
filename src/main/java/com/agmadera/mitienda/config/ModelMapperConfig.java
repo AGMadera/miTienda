@@ -47,7 +47,8 @@ public class ModelMapperConfig {
                 .addMapping(src -> src.getIdVenta(),ReembolsoResponse::setIdCompra);
         modelMapper.typeMap(GarantiaVale.class, ValeResponse.class)
                 .addMapping(src->src.getHistorialVales(),ValeResponse::setHistorialGarantiaValesDtos);
-
+        modelMapper.typeMap(ValeResponse.class, GarantiaVale.class)
+                .addMapping(ValeResponse::getHistorialGarantiaValesDtos,GarantiaVale::setHistorialVales);
 
         return modelMapper;
 

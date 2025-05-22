@@ -1,9 +1,13 @@
 package com.agmadera.mitienda.facade.impl;
 
+import com.agmadera.mitienda.entities.ProductoEntity;
+import com.agmadera.mitienda.exceptions.StockInsuficienteException;
 import com.agmadera.mitienda.facade.StockFacade;
 import com.agmadera.mitienda.models.ProductoDTO;
+import com.agmadera.mitienda.models.ProductoVentaDTO;
 import com.agmadera.mitienda.models.StockDTO;
 import com.agmadera.mitienda.populator.ProductoPopulator;
+import com.agmadera.mitienda.services.ProductoService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -13,7 +17,11 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 @RequiredArgsConstructor
 public class StockFacadeImpl implements StockFacade {
-    private ProductoPopulator populator;
+    private static final String LOGGER_STOCK_INSUFICIENTE = "Stock insuficiente para producto ID: {}";
+    private final String LOGGER_NO_HAY_EXISTENCIA = "No hay unidades en existencia";
+    //private final String LOGGER_EXISTENCIA_NO_SUFICIENTE = "No hay suficientes unidades";
+    private final ProductoPopulator populator;
+    private final ProductoService productoService;
 
 
     @Override
@@ -40,29 +48,41 @@ public class StockFacadeImpl implements StockFacade {
 
     @Transactional
     public ProductoDTO actualizarStockVenta(ProductoDTO dto) {
-  /*      log.info(LOGGER_ACTUALIZANDO_STOCK,dto.getId());
-        //Se convierte dto a entityDto
+
+        log.info("Actualizando stock producto ID: {} por Venta", dto.getId());
         ProductoEntity producto = populator.dto2Entity(dto);
-        //si hay las unidades de la entityDto son menores a 0
-        if(producto.getStockEntity().getUnidadesExistencia() < 0){
-            log.error(LOGGER_STOCK_EN_CERO);
-            throw new StockInsuficienteException();
-        }
+        validarStock(producto);
+        ProductoEntity productoDb = productoService.buscarId(producto.getId());
+        actualizarStock(productoDb, producto);
 
-        //Se obtiene la Entity del dto
-        ProductoEntity productoDb = service.buscarId(producto.getId());
-
-        //Se agregan las nuevas unidades vendidas y las unidades en existencia
-        //Unidades vendidas hace referencia a las unidades que se han vendido de manera historica del producto no a las unidades a vender
-        //Esa validacion se hace en VentaFacadeImpl
-
-        //productoDb.getStockEntity().setUnidadesVendidas(producto.getStockEntity().getUnidadesVendidas());
-        //productoDb.getStockEntity().setUnidadesExistencia(producto.getStockEntity().getUnidadesExistencia());
-
-        //return populator.entity2Dto(service.guardar(productoDb));
-        */
-        return null;
+        return populator.entity2Dto(productoService.guardar(productoDb));
 
     }
+
+    @Override
+    public void validarExistenciaStock(ProductoDTO productoDTO, ProductoVentaDTO productoVentaDTO) {
+        if (productoDTO.getStockDTO().getUnidadesExistencia() == 0 ||
+                productoDTO.getStockDTO().getUnidadesExistencia()<productoVentaDTO.getCantidad()){
+            if (productoDTO.getStockDTO().getUnidadesExistencia() == 0){
+                log.error(LOGGER_NO_HAY_EXISTENCIA);
+                throw new StockInsuficienteException();
+            }
+            log.error(LOGGER_STOCK_INSUFICIENTE);
+            throw new StockInsuficienteException(productoVentaDTO.getIdProductoRef(), productoDTO.getStockDTO().getUnidadesExistencia());
+        }
+    }
+
+    private void validarStock(ProductoEntity producto) {
+        if (producto.getStockEntity().getUnidadesExistencia() < 0) {
+            log.error(LOGGER_STOCK_INSUFICIENTE, producto.getId());
+            throw new StockInsuficienteException();
+        }
+    }
+
+    private void actualizarStock(ProductoEntity destino, ProductoEntity origen) {
+        destino.getStockEntity().setUnidadesVendidas(origen.getStockEntity().getUnidadesVendidas());
+        destino.getStockEntity().setUnidadesExistencia(origen.getStockEntity().getUnidadesExistencia());
+    }
+
 
 }

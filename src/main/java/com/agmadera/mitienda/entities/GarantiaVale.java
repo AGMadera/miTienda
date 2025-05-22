@@ -9,8 +9,11 @@ public class GarantiaVale extends Garantia{
     private String folio;
     private float saldoInicial;
     private float saldoActual;
+    @Version
+    @Column(nullable = false, columnDefinition = "bigint default 0")
+    private Long version = 0L;
 
-    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "historial_garantia_vale", referencedColumnName = "id")
     private List<HistorialGarantiaVale> historialVales;
 
@@ -44,5 +47,13 @@ public class GarantiaVale extends Garantia{
 
     public void setHistorialVales(List<HistorialGarantiaVale> historialVales) {
         this.historialVales = historialVales;
+    }
+
+    public Long getVersion() {
+        return version;
+    }
+
+    public void setVersion(Long version) {
+        this.version = version;
     }
 }

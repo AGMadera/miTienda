@@ -1,7 +1,7 @@
 package com.agmadera.mitienda.config;
 
-import com.agmadera.mitienda.strategy.PrecioStrategy;
-import com.agmadera.mitienda.strategy.impl.MargenFijoStrategy;
+import com.agmadera.mitienda.strategies.PrecioStrategy;
+import com.agmadera.mitienda.strategies.impl.MargenFijoStrategy;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 

@@ -6,4 +6,5 @@ import com.agmadera.mitienda.models.response.ValeResponse;
 public interface ValeCobroFacade {
     ValeResponse cobroVale(ValeResponse valeResponse, VentaDTO dto);
     ValeResponse buscarVale(String folio);
+    float aplicarDescuentoPorVale(VentaDTO ventaDTO);
 }

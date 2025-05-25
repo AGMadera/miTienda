@@ -67,4 +67,12 @@ public class ValeCobroFacadeImpl implements ValeCobroFacade {
         response.setVersion(vale.getVersion());
         return response;
     }
+
+    @Override
+    public float aplicarDescuentoPorVale(VentaDTO ventaDTO) {
+
+        return 0;
+    }
+
+
 }

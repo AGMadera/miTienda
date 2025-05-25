@@ -2,7 +2,7 @@ package com.agmadera.mitienda.services.impl;
 
 
 import com.agmadera.mitienda.entities.GananciaEntity;
-import com.agmadera.mitienda.repository.GananciaRepository;
+import com.agmadera.mitienda.repositories.GananciaRepository;
 import com.agmadera.mitienda.services.GananciaService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

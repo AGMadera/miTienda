@@ -3,7 +3,7 @@ package com.agmadera.mitienda.facade.impl;
 import com.agmadera.mitienda.facade.PrecioFacade;
 import com.agmadera.mitienda.models.CompraVentaDTO;
 import com.agmadera.mitienda.models.ProductoDTO;
-import com.agmadera.mitienda.strategy.PrecioStrategy;
+import com.agmadera.mitienda.strategies.PrecioStrategy;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;

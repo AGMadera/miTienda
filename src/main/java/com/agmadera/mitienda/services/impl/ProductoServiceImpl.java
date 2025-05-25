@@ -4,7 +4,7 @@ import com.agmadera.mitienda.entities.ProductoEntity;
 import com.agmadera.mitienda.exceptions.ProductoNoEncontradoException;
 import com.agmadera.mitienda.exceptions.ProductoValidacionException;
 import com.agmadera.mitienda.exceptions.mensajes.ProductoMensajesError;
-import com.agmadera.mitienda.repository.ProductoRepository;
+import com.agmadera.mitienda.repositories.ProductoRepository;
 import com.agmadera.mitienda.services.ProductoService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

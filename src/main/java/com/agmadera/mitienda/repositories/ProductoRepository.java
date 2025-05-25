@@ -1,4 +1,4 @@
-package com.agmadera.mitienda.repository;
+package com.agmadera.mitienda.repositories;
 
 import com.agmadera.mitienda.entities.ProductoEntity;
 import org.springframework.data.domain.Page;

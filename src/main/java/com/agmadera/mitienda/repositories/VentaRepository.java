@@ -1,6 +1,5 @@
-package com.agmadera.mitienda.repository;
+package com.agmadera.mitienda.repositories;
 
-import com.agmadera.mitienda.entities.ProductoVentaEntity;
 import com.agmadera.mitienda.entities.VentaEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 

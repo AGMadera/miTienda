@@ -3,7 +3,7 @@ package com.agmadera.mitienda.services.impl;
 import com.agmadera.mitienda.entities.VentaEntity;
 import com.agmadera.mitienda.exceptions.VentaNoEncontradaException;
 import com.agmadera.mitienda.exceptions.mensajes.VentaMensajesError;
-import com.agmadera.mitienda.repository.VentaRepository;
+import com.agmadera.mitienda.repositories.VentaRepository;
 import com.agmadera.mitienda.services.VentaService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

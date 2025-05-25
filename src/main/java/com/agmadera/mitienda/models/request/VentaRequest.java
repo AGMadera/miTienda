@@ -1,6 +1,5 @@
 package com.agmadera.mitienda.models.request;
 
-import com.agmadera.mitienda.Enum.TipoPago;
 import com.agmadera.mitienda.models.ProductoVentaDTO;
 
 import java.util.List;
@@ -11,8 +10,6 @@ public class VentaRequest {
     private boolean tecnico;
 
     private boolean garantia;
-
-    //private Long folioGarantia;
 
 
     public boolean isTecnico() {

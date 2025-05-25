@@ -1,7 +1,7 @@
 package com.agmadera.mitienda.services.impl;
 
 import com.agmadera.mitienda.entities.GananciaVentaEntity;
-import com.agmadera.mitienda.repository.GananciaVentaRepository;
+import com.agmadera.mitienda.repositories.GananciaVentaRepository;
 import com.agmadera.mitienda.services.GanaciaVentaService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

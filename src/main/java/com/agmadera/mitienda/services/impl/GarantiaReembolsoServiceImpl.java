@@ -1,7 +1,7 @@
 package com.agmadera.mitienda.services.impl;
 
 import com.agmadera.mitienda.entities.GarantiaReembolso;
-import com.agmadera.mitienda.repository.GarantiaReembolsoRepository;
+import com.agmadera.mitienda.repositories.GarantiaReembolsoRepository;
 import com.agmadera.mitienda.services.GarantiaReembolsoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

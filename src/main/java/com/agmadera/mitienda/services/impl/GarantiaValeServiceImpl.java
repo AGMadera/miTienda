@@ -2,7 +2,7 @@ package com.agmadera.mitienda.services.impl;
 
 import com.agmadera.mitienda.entities.GarantiaVale;
 import com.agmadera.mitienda.exceptions.GarantiaNoValidaException;
-import com.agmadera.mitienda.repository.GarantiaValeRespository;
+import com.agmadera.mitienda.repositories.GarantiaValeRespository;
 import com.agmadera.mitienda.services.GarantiaValeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

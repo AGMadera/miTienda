@@ -10,5 +10,6 @@ public interface StockFacade {
     void inicializarStock(ProductoDTO dto, ProductoDTO productoExistente);
     ProductoDTO actualizarStockVenta(ProductoDTO dto);
     void validarExistenciaStock(ProductoDTO productoDTO, ProductoVentaDTO productoVentaDTO);
+    void registrarMerma(Long idProducto);
 
 }

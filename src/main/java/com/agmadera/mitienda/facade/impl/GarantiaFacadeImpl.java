@@ -101,7 +101,10 @@ public class GarantiaFacadeImpl implements GarantiaFacade {
 
         if (garantiaDTO.getRazonGarantia() != RazonGarantia.displayMalEstado) {
             actualizarStockProducto(garantiaDTO.getIdProductoVenta());
+        }else {
+            registrarMerma(garantiaDTO.getIdProductoVenta());
         }
+
 
         return precioProducto;
     }
@@ -180,5 +183,9 @@ public class GarantiaFacadeImpl implements GarantiaFacade {
 
     private void actualizarGanancias(VentaDTO ventaDTO, Long idProducto, TipoGarantia tipoGarantia) {
         gananciaFacade.actualizarGanacia(ventaDTO, idProducto, tipoGarantia);
+    }
+
+    private void registrarMerma(Long idProducto){
+        stockFacade.registrarMerma(idProducto);
     }
 }

@@ -1,6 +1,7 @@
 package com.agmadera.mitienda.facade.impl;
 
 import com.agmadera.mitienda.entities.ProductoEntity;
+import com.agmadera.mitienda.entities.StockEntity;
 import com.agmadera.mitienda.exceptions.StockInsuficienteException;
 import com.agmadera.mitienda.facade.StockFacade;
 import com.agmadera.mitienda.models.ProductoDTO;
@@ -22,6 +23,7 @@ public class StockFacadeImpl implements StockFacade {
     //private final String LOGGER_EXISTENCIA_NO_SUFICIENTE = "No hay suficientes unidades";
     private final ProductoPopulator populator;
     private final ProductoService productoService;
+
 
 
     @Override
@@ -72,6 +74,16 @@ public class StockFacadeImpl implements StockFacade {
         }
     }
 
+    @Override
+    public void registrarMerma(Long idProducto) {
+        log.info("Registrando merma del producto: {}",idProducto);
+        ProductoEntity productoEntity = productoService.buscarId(idProducto);
+        StockEntity stockEntity = productoEntity.getStockEntity();
+        stockEntity.setUnidadesVendidas(stockEntity.getUnidadesVendidas()-1);
+        stockEntity.setMerma(stockEntity.getMerma()+1);
+        productoService.guardar(productoEntity);
+    }
+
     private void validarStock(ProductoEntity producto) {
         if (producto.getStockEntity().getUnidadesExistencia() < 0) {
             log.error(LOGGER_STOCK_INSUFICIENTE, producto.getId());
@@ -83,6 +95,8 @@ public class StockFacadeImpl implements StockFacade {
         destino.getStockEntity().setUnidadesVendidas(origen.getStockEntity().getUnidadesVendidas());
         destino.getStockEntity().setUnidadesExistencia(origen.getStockEntity().getUnidadesExistencia());
     }
+
+
 
 
 }

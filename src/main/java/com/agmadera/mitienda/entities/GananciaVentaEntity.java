@@ -19,15 +19,10 @@ public class GananciaVentaEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
-
     private Long idVenta;
-
     private float inversion;
-
     private float ganancia;
-
     private float vendido;
-
     private Date fecha;
 
 }

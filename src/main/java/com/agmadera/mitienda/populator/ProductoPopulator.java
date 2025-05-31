@@ -3,6 +3,7 @@ package com.agmadera.mitienda.populator;
 import com.agmadera.mitienda.entities.ProductoEntity;
 import com.agmadera.mitienda.models.ProductoDTO;
 import com.agmadera.mitienda.models.response.ProductoPGResponse;
+import com.agmadera.mitienda.models.response.ProductoStockResponse;
 import com.agmadera.mitienda.models.response.ProductoTecResponse;
 
 import java.util.List;
@@ -14,4 +15,7 @@ public interface ProductoPopulator {
     List<ProductoEntity> listDto2entities(List<ProductoDTO> dtoList);
     List<ProductoTecResponse> listEntity2ProductoTecResponses(List<ProductoEntity> entities);
     List<ProductoPGResponse> listEntity2ProductoPGResponses(List<ProductoEntity> entities);
+
+    ProductoStockResponse entity2PSResponse(ProductoEntity productoEntity);
+    List<ProductoStockResponse> listEntity2PSResponses(List<ProductoEntity> entities);
 }

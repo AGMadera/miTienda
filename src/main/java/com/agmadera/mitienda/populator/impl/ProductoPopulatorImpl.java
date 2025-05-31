@@ -5,6 +5,7 @@ import com.agmadera.mitienda.entities.CompraVentaEntity;
 import com.agmadera.mitienda.entities.ProductoEntity;
 import com.agmadera.mitienda.models.ProductoDTO;
 import com.agmadera.mitienda.models.response.ProductoPGResponse;
+import com.agmadera.mitienda.models.response.ProductoStockResponse;
 import com.agmadera.mitienda.models.response.ProductoTecResponse;
 import com.agmadera.mitienda.populator.ProductoPopulator;
 import org.modelmapper.ModelMapper;
@@ -82,6 +83,18 @@ public class ProductoPopulatorImpl implements ProductoPopulator {
         }
 
         return productoPGRespons;
+    }
+
+    @Override
+    public ProductoStockResponse entity2PSResponse(ProductoEntity productoEntity) {
+        ProductoStockResponse productoStockResponse = mapper.map(productoEntity, ProductoStockResponse.class);
+        return productoStockResponse;
+    }
+
+    @Override
+    public List<ProductoStockResponse> listEntity2PSResponses(List<ProductoEntity> entities) {
+        List<ProductoStockResponse> productoStockResponses = entities.stream().map(productoEntity -> mapper.map(productoEntity, ProductoStockResponse.class)).collect(Collectors.toList());
+        return productoStockResponses;
     }
 
     private ArrayList<Float> precioTemp (List<ProductoEntity> entities, TipoCliente cliente){

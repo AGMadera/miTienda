@@ -36,7 +36,7 @@ public class ProductoVentaHandlerImpl implements ProductoVentaHandler {
         productoVenta.setPrecio(obtenerPrecioProducto(producto, esTecnico));
         productoVenta.setTotal(calcularTotalProducto(productoVenta));
 
-        actualizarStock(producto, productoVenta);
+        //actualizarStock(producto, productoVenta);
 
         return productoVenta;
     }
